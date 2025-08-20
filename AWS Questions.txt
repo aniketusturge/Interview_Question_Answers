@@ -1,0 +1,863 @@
+AWS Questions 
+
+
+How would you connect two VPCs in AWS?
+
+To connect two VPCs in AWS, I typically evaluate the use case — whether it's for cross-region communication, same-account or cross-account access, and the level of scalability and isolation needed. Based on that, I choose one of the following methods:
+
+1. VPC Peering (For Small-Scale, Low-Complexity Use Cases):
+-VPC peering is a point-to-point connection between two VPCs.
+-It allows private communication between resources in both VPCs using their private IPs.
+-After setting up the peering connection, I configure route tables on both VPCs to allow traffic to flow between them.
+-Important to note: Peering is non-transitive, meaning if VPC A is peered with B, and B with C, A can't talk to C through B.
+
+2. AWS Transit Gateway (For Scalable, Multi-VPC Connectivity):
+-For more complex or large-scale environments, I use AWS Transit Gateway (TGW).
+-It acts as a centralized hub to connect multiple VPCs and even on-premises networks via VPN or Direct Connect.
+-It provides transitive routing, better scalability, and simpler management than peering mesh.
+-I associate each VPC with the TGW and update route tables accordingly.
+
+3. VPC Lattice (Modern Service-to-Service Communication):
+In modern microservice architectures, I may use VPC Lattice to securely connect services across VPCs using fine-grained service-level policies, regardless of the network layer.
+
+4. VPN or Direct Connect (For Hybrid Scenarios):
+-If the goal is to connect a VPC to an on-premises network or another cloud, I use AWS VPN or Direct Connect.
+-In hybrid cases, VPNs can also be terminated on Transit Gateway for consolidated routing.
+
+Security and Access Control:
+For any VPC connection, I ensure:
+-Route tables are updated correctly.
+-Security groups and NACLs permit necessary traffic.
+-IAM policies and resource-level permissions align with the desired access model.
+
+In summary, I choose between VPC Peering and Transit Gateway depending on the complexity, scale, and transitive routing needs. For hybrid or service-level communication, VPN/Direct Connect or VPC Lattice may be more appropriate — always ensuring secure and controlled traffic flow across environments.
+
+--------------------------------------------------
+
+Question: What practices would you propose to reduce compute costs across the organization?
+
+To effectively reduce compute costs across the organization without compromising performance or reliability, I follow a combination of architectural, operational, and automation-based strategies:
+
+1. Rightsizing Resources
+-Perform regular usage audits with tools like AWS Compute Optimizer, custom Prometheus/Grafana dashboards.
+-Identify underutilized EC2, VM, or container instances and downsize or consolidate them based on CPU/memory trends.
+
+2. Auto Scaling & Demand-Based Scaling
+-Implement Auto Scaling Groups and Kubernetes Horizontal Pod Autoscalers to dynamically adjust compute based on demand.
+-This avoids over-provisioning and ensures you only pay for what you use during peak loads.
+
+3. Use of Spot Instances or Preemptible VMs
+-For stateless or fault-tolerant workloads, I propose leveraging Spot Instances (AWS) or Preemptible VMs (GCP) which offer up to 90% savings.
+-Integrate fallback strategies to switch to on-demand in case spot capacity is reclaimed.
+
+4. Containerization and Efficient Orchestration
+-Promote use of Docker containers and orchestrate them with Kubernetes, which enables better packing of workloads and reduces idle resource consumption.
+-Use node auto-scaling and taints/tolerations to optimize cluster utilization.
+
+5. Serverless and Event-Driven Architectures
+-ncourage adoption of FaaS (e.g., AWS Lambda, Azure Functions) for short-lived or infrequent tasks.
+-Serverless ensures pay-per-execution billing model, eliminating idle resource costs.
+
+6. Schedule-Based Resource Management
+Apply resource scheduling policies to shut down non-production environments (dev, staging) during off-hours using automation scripts, CloudWatch events, or Terraform/Ansible workflows.
+
+7. Use Compute Savings Plans or Reserved Instances
+Recommend and manage Reserved Instances or Savings Plans for predictable, long-running workloads to secure up to 72% cost savings compared to on-demand pricing.
+
+8. Monitoring and Alerts for Cost Anomalies
+Set up budget alerts and cost anomaly detection in the cloud provider’s billing dashboard to detect unexpected spikes in compute costs.
+
+9. Policy-Driven Resource Governance
+-Enforce tag-based policies and resource limits (e.g., quota management) to avoid orphaned and unnecessary compute instances.
+-Use tools like Cloud Custodian or Terraform Sentinel for policy compliance and enforcement.
+
+In summary, cost optimization is a continuous practice. I advocate for a data-driven, automated, and cloud-native approach to reduce waste, improve efficiency, and ensure compute resources are aligned with actual business needs and workload behavior.
+
+------------------------------------------------------------------------------------------
+
+How do you connect to an EC2 instance with no public IP?
+
+"If an EC2 instance doesn’t have a public IP, we can still connect to it by leveraging private network paths instead of direct internet access. The most common approaches include:
+
+1.Bastion Host (Jump Server) – We deploy a public-facing EC2 in the same VPC and connect to it via SSH. From there, we hop into the private EC2 using its private IP.
+2.AWS Systems Manager Session Manager – This allows browser-based or CLI access without opening SSH ports, provided the instance has the SSM agent and proper IAM role.
+3.Site-to-Site VPN or Direct Connect – If the on-prem network is connected to the VPC, we can use the private IP over that secure channel.
+4.VPC Peering or Transit Gateway – In multi-VPC architectures, peering enables private IP access from a connected VPC with the right routing and security rules.
+
+The key idea is to avoid exposing the instance to the internet and instead connect through secure, controlled internal network paths."
+
+
+
+------------------------------------------------------
+
+what are the ways to connect to EC2?
+
+"We can connect to an EC2 instance using different methods depending on its network configuration and access requirements:
+
+1.Public Internet (Has Public IP)
+-SSH (Linux) or RDP (Windows) using the instance’s public IP/DNS.
+-Requires inbound security group rules for port 22 or 3389.
+
+2.Private Network (No Public IP)
+-Bastion Host / Jump Server – Access via a public-facing EC2, then hop to the private one.
+-AWS Systems Manager Session Manager – Agent-based access without SSH/RDP ports.
+-Site-to-Site VPN or Direct Connect – Access from on-prem to VPC using private IP.
+-VPC Peering / Transit Gateway – Access from another VPC with routing and security set up.
+
+3.Programmatic Access
+-Through AWS CLI, SDKs, or APIs, often combined with IAM roles for secure operations.
+
+The approach depends on whether the instance is internet-facing or private, and we always aim for the least exposure and most secure path."
+
+--------------------------------------------------------------
+
+What is CloudFront and if changes are not reflected on user side, how do you fix it?
+
+-Amazon CloudFront is AWS’s Content Delivery Network (CDN) service. It caches content at edge locations worldwide to reduce latency and improve performance for end users. 
+-It’s commonly used for static assets, APIs, video streaming, and secure content delivery."
+-If changes are not reflected on the user side, it’s usually due to cached content at CloudFront’s edge locations. 
+To fix this:
+1.Invalidate the cache – Use the AWS Console, CLI, or API to create an invalidation for the affected file paths so CloudFront fetches fresh content from the origin.
+2.Version your assets – Append a version number or hash in the file name/URL so CloudFront treats it as new content.
+3.Adjust cache behaviors – Lower TTLs or configure cache-control headers from the origin to control how long content is cached.
+4.Verify origin changes – Ensure the new content is actually updated at the origin server (S3, EC2, etc.) before invalidation.
+
+In short, when content updates are delayed, it’s almost always a cache issue, and the immediate fix is an invalidation, while the long-term fix is proper cache-control strategy.
+
+
+---------------------------------------------------------------
+
+What is the difference between a public and private subnet?
+
+In AWS, the difference between a public and private subnet is based on whether the resources inside can directly communicate with the internet."
+
+Public Subnet
+-Has a route to the Internet Gateway (IGW) in its route table.
+-Instances can have public IPs and be accessed from the internet (if security group rules allow).
+-Commonly used for load balancers, bastion hosts, and public-facing services.
+
+Private Subnet
+-No direct route to the IGW — traffic to the internet goes through a NAT Gateway/Instance in a public subnet.
+-Instances don’t have public IPs and can’t be reached directly from the internet.
+-Used for databases, application servers, and internal services.
+
+In short:
+Public = internet-facing, Private = isolated, with outbound-only internet via NAT.
+
+
+--------------------------------------------------------
+
+How to create a subnet?
+
+To create a subnet in AWS, you first need a VPC, then define the subnet’s IP range and placement."
+
+Steps:
+1.Identify the VPC – Choose the VPC where the subnet will reside.
+2.Define the CIDR block – Select an IP range (subset of the VPC’s CIDR) without overlapping other subnets.
+3.Select the Availability Zone – Place the subnet in a specific AZ for redundancy planning.
+4.Create the subnet – Via AWS Console, CLI (aws ec2 create-subnet), or Infrastructure as Code (Terraform, CloudFormation).
+5.Configure routing –
+-Public subnet → add route to Internet Gateway.
+-Private subnet → route traffic to a NAT Gateway/Instance for outbound internet.
+6.Set auto-assign public IP (optional) – For public subnets.
+
+In essence, creating a subnet is about carving out an IP range inside a VPC and linking it to the right routing path depending on whether it’s public or private."
+
+
+-------------------------------------------------------------
+
+What is a Security Group and how to deny traffic?
+
+A Security Group in AWS is a virtual firewall for EC2 instances and other resources, controlling inbound and outbound traffic at the instance level. It works on an allow-only model — you explicitly define what’s permitted, and all other traffic is implicitly denied."
+
+Key points:
+-Stateful – If inbound traffic is allowed, the response is automatically allowed, and vice versa.
+-Attached to resources – Such as EC2, RDS, or ENIs.
+-Allow rules only – No explicit “deny” rules. Anything not allowed is dropped by default.
+
+To deny traffic:
+-You cannot create a direct “deny” in a Security Group.
+-To block specific traffic, you either:
+  1.Omit the allow rule for that traffic.
+  2.Use a Network ACL (NACL), which supports both allow and deny rules, at the subnet level.
+  3.Implement AWS WAF, firewall appliances, or routing controls for more granular blocking.
+
+In short: Security Groups let you allow what you need; everything else is denied by design.
+
+----------------------------------------------------
+
+What is inbound and outbound traffic?
+Inbound and outbound traffic refer to the direction of network communication for a resource like an EC2 instance."
+
+1.Inbound Traffic – Network requests coming into the resource from external sources.
+-Example: A user’s browser sending an HTTP request to a web server.
+-Controlled by inbound rules in Security Groups and NACLs.
+
+2.Outbound Traffic – Network requests leaving the resource to external destinations.
+-Example: A web server calling an external API or downloading updates from the internet.
+-Controlled by outbound rules in Security Groups and NACLs.
+
+In short:
+Inbound = requests coming in,
+Outbound = requests going out.
+
+
+---------------------------------------------------
+
+How to download object from S3 in EC2 (private subnet)?
+
+If an EC2 instance is in a private subnet, it can still download an object from S3 by using private network paths instead of the internet."
+
+Common approaches:
+1.VPC Endpoint for S3 (Preferred)
+-Create a Gateway VPC Endpoint for S3 in the VPC.
+-Update the route table of the private subnet to send S3 traffic through the endpoint.
+-This keeps traffic inside the AWS network and doesn’t require a NAT.
+
+2.NAT Gateway / NAT Instance
+-Place it in a public subnet.
+-Route the private subnet’s internet-bound traffic to the NAT, which accesses S3 over the internet.
+
+3.AWS CLI on EC2
+-Once connectivity is set up (via endpoint or NAT), run:
+
+bash
+aws s3 cp s3://<bucket-name>/<object-key> <local-path>
+-Ensure the EC2’s IAM role has s3:GetObject permission.
+
+In short: The secure and cost-effective way is to use a VPC Endpoint for S3, avoiding internet exposure and data transfer charges.
+
+
+---------------------------------------------------
+
+Difference between VPC Peering and Transit Gateway?
+
+VPC Peering and Transit Gateway both connect VPCs, but they differ in scale, routing, and use cases."
+
+Feature		VPC Peering					Transit Gateway (TGW)
+Architecture	Point-to-point connection between two VPCs	Hub-and-spoke model connecting many VPCs and on-prem networks
+Routing		No transitive routing (A↔B only)		Supports transitive routing (A↔B↔C)
+Scalability	Best for small numbers of VPCs			Scales to hundreds/thousands of VPCs
+Management	Each new connection requires separate peering	Centralized management via one TGW
+Cost		Lower cost for few connections			Higher cost, but more efficient for large setups
+Cross-region	Supported					Supported
+Use Case	Simple 1:1 or few-to-few VPC connections	Large, multi-VPC, multi-account, or hybrid cloud networking
+
+In short:
+
+VPC Peering → simple, direct link for a few VPCs.
+
+Transit Gateway → scalable hub for complex architectures.
+
+--------------------------------------
+
+How do you access S3 from a different AWS account?
+
+To access an S3 bucket in a different AWS account, you need cross-account permissions. This can be done in several secure ways."
+
+Common approaches:
+1.Bucket Policy with Cross-Account Access
+-Add a policy to the bucket in Account A that grants s3:GetObject (or needed permissions) to the IAM principal (user, role) in Account B.
+
+2.IAM Role in the Bucket’s Account (Role Switching)
+-Create an IAM role in Account A with S3 permissions.
+-Allow Account B’s principals to assume that role.
+-Use sts:AssumeRole to get temporary credentials and access S3.
+
+3.S3 Access Points / VPC Endpoints (Advanced)
+-Create cross-account S3 Access Points for controlled access from specific networks or VPCs.
+
+Best practice:
+-Use IAM roles instead of long-term credentials.
+-Apply least privilege.
+-Enable S3 bucket encryption and logging.
+
+In short: Set explicit permissions in the bucket’s account and authenticate using IAM roles or policies from the requesting account.
+
+
+------------------------------------------------
+
+How do you increase EBS volume and mount it?
+
+In AWS, you can increase an EBS volume size without downtime, but you also need to resize the filesystem to use the new space."
+
+Steps:
+1.Modify the EBS Volume
+-Go to EC2 → Volumes → Select the volume → Modify.
+-Increase the size (and optionally change type or IOPS).
+-This action is online for most modern instance types.
+
+2.Verify Volume Update
+On the EC2 instance, run:
+
+bash
+lsblk
+to see the updated disk size.
+
+3.Resize the Filesystem (Linux example)
+For ext4:
+
+bash
+sudo resize2fs /dev/xvdf
+For XFS:
+
+bash
+sudo xfs_growfs -d /mount/point
+
+4.Mount the Volume (if it’s a new or unmounted disk)
+
+Create a mount point:
+
+bash
+sudo mkdir /data
+Mount:
+
+bash
+sudo mount /dev/xvdf /data
+Update /etc/fstab for persistence.
+
+In short: Modify volume in AWS → confirm OS sees new size → grow the filesystem → mount if needed.
+
+
+----------------------------------------------
+
+What if EBS still shows full after increasing volume?
+
+If an EBS volume still shows full after increasing its size, it usually means the underlying disk grew, but the filesystem wasn’t expanded to use the new space."
+
+Possible causes and fixes:
+1.Filesystem Not Resized
+-Even after increasing the volume in AWS, the OS only sees the bigger block device — the filesystem must be expanded manually.
+-For ext4:
+
+bash
+sudo resize2fs /dev/xvdf
+For XFS:
+
+bash
+sudo xfs_growfs -d /mount/point
+
+2.Wrong Device Checked
+-Ensure you’re checking the correct device with lsblk or df -h.
+-Sometimes root volumes are /dev/xvda but data volumes are /dev/xvdf.
+
+3.Partition Table Not Extended (if using partitions)
+-If the volume has a partition table, you might need growpart or parted to extend the partition first:
+
+bash
+sudo growpart /dev/xvdf 1
+then resize the filesystem.
+
+In short: AWS resizes the disk, but it’s your job to resize the filesystem and partitions so the OS can use the extra space.
+
+----------------------------------------------
+
+Can we directly access memory and disk usage in CloudWatch dashboard?
+
+By default, CloudWatch automatically collects some EC2 metrics like CPU, network, and EBS I/O, but not memory or disk usage inside the instance. For those, you need custom metrics."
+
+Details:
+-Default CloudWatch Metrics – CPU utilization, network in/out, EBS read/write ops, etc. No OS-level memory or disk space stats.
+-For Memory & Disk Usage –
+ 1.Install and configure the CloudWatch Agent on the EC2 instance.
+ 2.Update the CloudWatch Agent config file to collect metrics like mem_used_percent or disk_used_percent.
+ 3.Publish them as custom metrics to CloudWatch.
+ 4.View them in the CloudWatch Dashboard or set alarms.
+
+In short:
+No — not directly. You must install the CloudWatch Agent to push memory and disk usage metrics.
+
+
+--------------------------------------------------------------
+
+How to send notification if threshold is above 70%?
+In AWS, you can send a notification when a metric (like CPU, memory, or disk usage) crosses 70% by creating a CloudWatch Alarm linked to an SNS topic."
+
+Steps:
+1.Ensure the metric exists
+-For CPU: already in CloudWatch by default.
+-For memory/disk: install CloudWatch Agent to push custom metrics.
+
+2.Create an SNS Topic
+-Go to SNS → Create Topic, e.g., HighUsageAlert.
+-Subscribe email, SMS, or Lambda to this topic. Confirm the subscription.
+
+3.Create a CloudWatch Alarm
+-Choose the metric (e.g., CPUUtilization or mem_used_percent).
+-Set the threshold to 70%.
+-Define evaluation period (e.g., 2 out of 5 minutes above threshold).
+-Select the SNS topic for the alarm action.
+
+4.Test the alarm
+-Simulate high usage or temporarily lower the threshold to confirm notifications work.
+
+In short: Metric → CloudWatch Alarm → SNS Topic → Notification to email/SMS/Lambda.
+
+
+--------------------------------------------------------------
+
+How do you automate CPU threshold handling with Lambda?
+
+We can automate CPU threshold handling with Lambda by using CloudWatch Alarms as the trigger, so when the CPU goes above a set value, Lambda runs corrective actions automatically."
+
+Steps:
+1.Create a CloudWatch Alarm
+-Choose metric (e.g., CPUUtilization).
+-Set threshold (e.g., > 70%).
+-Configure it to trigger when the condition is met for a certain period (e.g., 2 of 5 minutes).
+
+2.Create an AWS Lambda Function
+The Lambda could:
+-Scale out EC2 instances (via Auto Scaling APIs).
+-Stop/restart processes.
+-Send custom notifications (Slack, Teams, etc.).
+-Trigger ECS/EKS scaling actions.
+
+3.Link Alarm to Lambda
+-In CloudWatch Alarm → Actions → Send to SNS topic.
+-Subscribe the Lambda function to that SNS topic.
+
+4.Permissions
+-Give Lambda an IAM role with permission to perform required actions (e.g., ec2:StartInstances, autoscaling:UpdateAutoScalingGroup).
+
+5.Test
+-Manually invoke the Lambda or temporarily lower the threshold to confirm automation works.
+
+Example use case: If CPU > 70%, Lambda could automatically increase the desired capacity of an Auto Scaling group by 1, ensuring performance without manual intervention.
+
+
+---------------------------------------------
+
+How to connect EC2 and S3 bucket?
+An EC2 instance connects to an S3 bucket through the AWS network using IAM permissions. You don’t expose S3 over the internet unless necessary — the best practice is to use roles or VPC endpoints."
+
+Approaches:
+1.IAM Role (Preferred)
+-Attach an IAM role to the EC2 instance with required S3 permissions (s3:GetObject, s3:PutObject, etc.).
+-Access S3 using the AWS CLI, SDKs, or applications without storing credentials.
+
+Example:
+
+bash
+aws s3 cp s3://my-bucket/file.txt .
+
+2.VPC Endpoint for S3 (for private subnets)
+-Create a Gateway VPC Endpoint for S3 in the VPC.
+-Update route tables so EC2 can reach S3 without internet.
+
+3.Access Keys (Not Recommended)
+-Manually configure AWS credentials on EC2 using aws configure.
+-Less secure — prone to leaks, so avoid in production.
+
+Best practice:
+-Use IAM roles for authentication.
+-Use VPC endpoints to keep traffic inside AWS.
+-Apply least privilege in IAM policies.
+
+
+----------------------------------------------
+
+what is vpc endpoints
+
+A VPC Endpoint allows your VPC to privately connect to AWS services without using the public internet, improving security and avoiding data transfer over the open internet."
+
+Key points:
+-Purpose – Keep traffic between your VPC and AWS services (like S3, DynamoDB, SNS) inside the AWS network.
+-Types of VPC Endpoints:
+  1.Gateway Endpoint – Used for S3 and DynamoDB; route table entry points to the service.
+  2.Interface Endpoint (PrivateLink) – Elastic network interface with a private IP; used for most other AWS services and custom/private services.
+
+Benefits:
+-No need for an Internet Gateway, NAT Gateway, or public IP.
+-Reduces attack surface (no exposure to internet).
+-Often reduces latency and data transfer costs.
+
+Example:
+If an EC2 instance in a private subnet needs to access S3, you can create a Gateway VPC Endpoint for S3, update the subnet’s route table, and the EC2 can connect privately without internet.
+
+
+----------------------------------------------
+
+How to differentiate between public and private IP?
+The main difference between public and private IPs is accessibility and the range they come from."
+
+Public IP:
+-Globally unique and reachable over the internet.
+-Assigned by AWS from its public pool.
+-Used for internet-facing resources (e.g., web servers).
+
+Private IP:
+-Used only within a private network (VPC or on-prem).
+-Comes from RFC 1918 ranges:
+  10.0.0.0 – 10.255.255.255
+  172.16.0.0 – 172.31.255.255
+  192.168.0.0 – 192.168.255.255
+-Not routable over the internet directly.
+
+Quick check in AWS:
+-In EC2 console, Public IPv4 address = public IP.
+-Private IPv4 address = internal IP in the VPC’s CIDR.
+
+In short:
+Public IP = internet-facing, unique globally.
+Private IP = internal-only, unique within the network.
+
+------------------------------------
+
+What is CloudWatch Agent and why install it on EC2?
+The CloudWatch Agent is a software package you install on EC2 (or on-prem servers) to collect additional metrics and logs that aren’t available by default in CloudWatch."
+
+Why install it on EC2?
+Default CloudWatch metrics cover only instance-level stats like CPU, network, and EBS I/O.
+CloudWatch Agent adds:
+-OS-level metrics → memory usage, disk space, swap usage, processes, etc.
+-Application logs → Apache, Nginx, system logs, custom app logs.
+-Custom metrics → any metric you define, like active connections or queue size.
+
+Benefits:
+-Gives deeper visibility into instance health and performance.
+-Allows setting alarms on memory/disk usage.
+-Supports both metrics and logs in one agent.
+-Works on Linux and Windows EC2s, as well as on-prem servers via Systems Manager.
+
+In short: You install the CloudWatch Agent on EC2 to bridge the visibility gap — without it, you can’t monitor memory, disk, or application logs in CloudWatch.
+
+
+-------------------------------------------
+
+What is Auto Scaling and how to create an Auto Scaling Group?
+
+Auto Scaling in AWS automatically adjusts the number of EC2 instances based on demand, ensuring performance while optimizing cost. It can scale out (add instances) when load increases and scale in (remove instances) when load decreases."
+
+How to create an Auto Scaling Group (ASG):
+1.Launch Template or Launch Configuration
+-Define instance type, AMI, security groups, key pair, and other EC2 settings.
+
+2.Create the Auto Scaling Group
+-Choose the launch template/config.
+-Select the VPC and subnets (usually multiple AZs for HA).
+-Define minimum, maximum, and desired instance counts.
+
+3.Attach Scaling Policies
+-Dynamic Scaling – Based on CloudWatch alarms (e.g., CPU > 70%).
+-Scheduled Scaling – Scale at predefined times.
+-Predictive Scaling – Uses machine learning to forecast demand.
+
+4.Attach Load Balancer (Optional)
+-Distributes traffic to instances in the group.
+
+5.Test the ASG
+-Simulate load or adjust desired capacity to confirm scaling works.
+
+In short: Auto Scaling = EC2 fleet that grows/shrinks automatically using a defined template, scaling policies, and CloudWatch metrics.
+
+------------------------------------------
+
+EC2 instance showing a “NoBootableDevice” error.
+A ‘No Bootable Device’ error in EC2 means the instance can’t find a valid boot volume or OS to start from. This usually points to issues with the root EBS volume or instance configuration."
+
+Common causes:
+1.Corrupted or deleted boot files – OS boot loader is missing or damaged.
+2.Wrong root device mapping – Instance is pointing to the wrong volume.
+3.Detached root volume – The root EBS was accidentally detached or replaced.
+4.Unsupported AMI/volume type – AMI corruption or block device mismatch.
+
+How to fix:
+1.Stop the instance (do not terminate).
+2.Check root volume attachment – Ensure the root EBS volume is attached as /dev/xvda or the correct boot device.
+3.Attach volume to another instance (as a secondary disk) → fix boot files, run fsck to repair filesystem, or restore from backup/snapshot.
+4.Reattach to the original instance and start it.
+5.If unrecoverable → launch a new instance from a known-good AMI and attach old data volumes.
+
+Best practice: Always keep EBS snapshots of critical systems so you can quickly restore if the root volume becomes unbootable.
+
+
+------------------------------------------
+
+ S3 bucket not accepting file uploads.
+
+If an S3 bucket isn’t accepting file uploads, it’s usually due to permissions, policies, or configuration issues."
+
+Common causes & fixes:
+1.IAM Permissions Missing
+-The IAM user/role needs s3:PutObject permission for that bucket.
+-Fix: Update IAM policy or bucket policy to allow s3:PutObject for the right principal and resource ARN.
+
+2.Bucket Policy Restrictions
+-The bucket policy might deny uploads from certain accounts, IPs, or VPCs.
+-Fix: Review and adjust bucket policy conditions (e.g., aws:SourceIp, aws:SourceVpc).
+
+3.S3 Block Public Access Enabled
+-If trying to upload publicly accessible files, the Block Public Access settings may reject them.
+-Fix: Adjust settings if public uploads are intentional.
+
+4.Default Encryption / KMS Issues
+-If bucket uses SSE-KMS, the uploader must have KMS key permissions (kms:Encrypt).
+-Fix: Grant key usage rights in KMS policy.
+
+5.ACL Disabled (Object Ownership)
+-If ACLs are disabled and uploader relies on ACLs for access control, uploads may fail.
+-Fix: Use bucket owner enforced mode correctly.
+
+6.Size Limits or Multipart Upload Issues
+-Very large files need multipart upload; network timeouts can cause failures.
+-Fix: Use AWS CLI/SDK with multipart upload enabled.
+
+In short: Check IAM permissions → bucket policy → encryption/key access → special settings like Block Public Access or ACL mode.
+
+
+----------------------------------------
+
+Lambda function not updating DynamoDB
+
+If a Lambda function isn’t updating DynamoDB, the issue is usually related to permissions, code logic, or resource configuration."
+
+Common causes & fixes:
+1.IAM Role Missing Permissions
+-Lambda’s execution role must have dynamodb:PutItem, UpdateItem, or DeleteItem for the target table.
+-Fix: Add the required actions in the role’s IAM policy.
+
+2.Wrong Table Name or Region
+-The function might be pointing to a different table or AWS region.
+-Fix: Check environment variables and SDK client configuration.
+
+3.Data Format or Validation Errors
+-DynamoDB may reject writes due to schema mismatch, reserved keywords, or exceeding limits.
+-Fix: Validate the payload matches the table’s key schema and attribute types.
+
+4.Provisioned Throughput Exceeded
+-Writes may be throttled if the table’s Write Capacity Units (WCU) are too low.
+-Fix: Enable auto-scaling or increase capacity; handle ProvisionedThroughputExceededException in code with retries.
+
+5.Error Handling in Lambda
+-The function may fail silently if exceptions aren’t logged or handled.
+-Fix: Add proper logging (console.log in Node.js, print in Python) and error catching.
+
+6.VPC Misconfiguration
+-If Lambda is in a VPC with no internet and you’re using DynamoDB via public endpoint, calls may fail.
+-Fix: Add a DynamoDB VPC endpoint or NAT gateway.
+
+In short: Check IAM permissions first, then table config, data format, and network setup. Use logs in CloudWatch to see exactly why the update fails.
+
+-----------------------------------------------------------------
+
+EIP losing connectivity after a reboot
+
+If an Elastic IP (EIP) loses connectivity after an EC2 reboot, it usually means the EIP is no longer associated with the instance’s primary network interface."
+
+Common causes:
+1.EIP not re-associated after restart – If you attached the EIP to a secondary network interface or manually in the OS, rebooting may drop that mapping.
+2.EIP attached to the wrong network interface – If the instance has multiple ENIs, traffic might route through one without the EIP.
+3.Network interface detached or replaced – In some setups, instance reboot might reset the default ENI.
+4.Security group or NACL blocking traffic – A reboot could trigger changes if networking rules were modified in automation.
+
+Fix:
+-Verify in AWS Console → EC2 → Elastic IPs that the EIP is still associated with the correct ENI.
+-Reassociate the EIP to the primary private IP of the primary network interface (eth0).
+-Ensure Security Group and NACL rules allow inbound/outbound traffic.
+-If using user data or automation scripts, make sure EIP association is persistent across reboots.
+
+Best practice: Always allocate and associate an EIP at the AWS resource level (ENI) — not just via OS config — so the mapping survives reboots.
+
+-----------------------------------------------------------------
+
+
+CloudWatch alarms not triggering
+
+If a CloudWatch alarm isn’t triggering, it usually means there’s a mismatch between the alarm’s configuration and the incoming metric data."
+
+Common causes & fixes:
+1.Metric not available or incorrect namespace
+-Alarm may be pointing to the wrong metric name, namespace, or dimension (e.g., wrong instance ID).
+-Fix: Verify metric exists in CloudWatch Metrics console and matches alarm settings exactly.
+
+2.Evaluation period and threshold mismatch
+-If the threshold is too high or the evaluation period is too long, the alarm may never breach.
+-Fix: Adjust threshold values and evaluation periods to match realistic triggers.
+
+3.Metric data delay
+-CloudWatch metrics can have a 1–5 min delay; short evaluation windows may miss the breach.
+-Fix: Increase evaluation period or check for missing data handling.
+
+4.Alarm state stuck in INSUFFICIENT_DATA
+-Often caused by no metric data for the evaluation period.
+-Fix: Ensure monitoring is enabled (e.g., detailed monitoring for EC2).
+
+5.Missing permissions (Cross-account alarms)
+-If alarm is supposed to monitor a resource in another account, metric permissions might block it.
+-Fix: Grant cross-account access to metrics.
+
+6.SNS topic misconfiguration
+-Alarm may trigger, but notification never arrives because SNS topic has no confirmed subscribers.
+-Fix: Confirm subscription and verify SNS delivery status.
+
+✅ Best Practice:
+Always test alarms by artificially breaching the threshold (e.g., stress CPU) to confirm metric, threshold, and notification setup are working end-to-end.
+
+--------------------------------------------------------------------
+
+Recovering an accidentally deleted S3 object
+Recovering a deleted S3 object depends on whether versioning and backups were enabled before deletion."
+
+1. If S3 Versioning is Enabled ✅
+Deleting an object only adds a delete marker.
+Fix:
+  -Go to S3 console → Enable 'Show versions'.
+  -Delete the delete marker or restore the previous version.
+
+2. If S3 Replication is Configured 🌍
+The replicated bucket may still have the original copy (if delete replication wasn’t enabled).
+Fix:
+  -Check the destination bucket and copy the object back.
+
+3. If Backups Exist 💾
+Recover from AWS Backup, Glacier, or an external backup system.
+
+4. If None of the Above ❌
+Without versioning or backups, the object is permanently lost — AWS cannot restore it.
+
+💡 Best Practice to avoid data loss in S3:
+-Enable versioning for critical buckets.
+-Use cross-region replication for disaster recovery.
+-Apply S3 Lifecycle Policies to manage old versions and save cost.
+
+
+-----------------------------------------------------
+
+ELB not routing traffic to EC2 instances
+
+If an ELB isn’t routing traffic to EC2 instances, it’s usually due to health check failures, security group restrictions, or target registration issues."
+
+Common causes & fixes:
+1.Health Checks Failing 🚑
+-ELB only sends traffic to healthy instances.
+-Fix: Ensure health check path/port is correct and the app is responding with HTTP 200.
+
+2.Instances Not in “InService” State 🖥️
+-If not registered or in the wrong target group, ELB won’t route traffic.
+-Fix: Confirm instance is registered in correct target group and matches the listener port.
+
+3.Security Group or NACL Blocking Traffic 🔒
+-ELB SG must allow inbound from clients, and instance SG must allow inbound from ELB SG.
+-Fix: Add rules to allow traffic on health check and app ports.
+
+4.Listener or Target Group Misconfiguration 🎯
+-Wrong protocol (HTTP vs HTTPS) or port mismatch.
+-Fix: Verify listeners and target group settings match the app’s configuration.
+
+5.Subnet / AZ Issues 🌐
+-If the instance is in an AZ not enabled for the ELB, traffic won’t reach it.
+-Fix: Add the AZ in ELB config or move the instance.
+
+6.App-Level Problems ⚠️
+-Application might be running but not serving requests correctly.
+-Fix: Test instance directly using curl or browser to verify response.
+
+Best Practice: Always start by checking ELB health checks, then security groups, then target group registration.
+
+--------------------------------------------
+
+Auto Scaling group not scaling under heavy traffic.
+If an Auto Scaling Group (ASG) isn’t scaling under load, it’s usually due to scaling policy misconfiguration, CloudWatch metrics not breaching the threshold, or limits set too restrictively."
+
+Common causes & resolutions:
+1.Scaling Policies Not Triggering ⚙️
+-Thresholds might be too high (e.g., CPU at 90%).
+-Fix: Lower the threshold or adjust the evaluation period so CloudWatch alarms can trigger sooner.
+
+2.CloudWatch Metrics Not Accurate 📊
+-Using the wrong metric (e.g., CPUUtilization on the wrong instance group).
+-Fix: Verify the metric source matches the ASG instances.
+
+3.Cooldown Period Too Long ⏳
+-A long cooldown delays scaling actions even if load stays high.
+-Fix: Reduce cooldown time to allow faster scaling.
+
+4.Max Size Limit Reached 🚫
+-If the ASG’s max size is already reached, no scaling will occur.
+-Fix: Increase the max capacity in ASG configuration.
+
+5.Health Check Failures 🚑
+-If new instances fail health checks, ASG may terminate them and never increase capacity.
+-Fix: Ensure the launch template/config produces healthy instances.
+
+6.IAM Role Restrictions 🔒
+-ASG needs permissions to launch instances.
+-Fix: Check IAM role policies for EC2 launch/terminate rights.
+
+7.Scaling Policy Type Mismatch 📐
+-Wrong choice between Target Tracking, Step Scaling, or Simple Scaling.
+-Fix: Pick the correct policy type for your use case (target tracking is most adaptive).
+
+✅ Best Practice: Start by confirming CloudWatch alarms are firing — if alarms don’t trigger, scaling won’t happen. Then check ASG limits and policy configuration.
+
+--------------------------------------
+
+IAM user can’t access resources despite correct policies.
+If an IAM user still can’t access resources despite having the right policies, it’s often due to restrictions beyond the user’s IAM policy — such as explicit denies, permission boundaries, SCPs, or resource policies."
+
+Common causes & resolutions:
+1.Explicit Deny in Any Policy 🚫
+-An explicit deny anywhere (user, group, role, resource) overrides all allows.
+-Fix: Search for any Effect: Deny in IAM or resource policies.
+
+2.Resource-based Policy Restrictions 📜
+-S3 buckets, Lambda, or other AWS services can have their own resource policies that override user permissions.
+-Fix: Check the resource’s policy for denies or conditions.
+
+3.Service Control Policies (SCPs) in AWS Organizations 🏢
+-SCPs can block access even if IAM allows it.
+-Fix: Verify SCPs at the org or OU level.
+
+4.Permission Boundaries 🔒
+-A permission boundary acts as a max permission limit for the user.
+-Fix: Ensure the boundary allows the intended action.
+
+5.Session Policies 🕒
+-Temporary credentials via STS or assumed roles can be restricted by session policies.
+-Fix: Check session policy limits.
+
+6.MFA Requirement in Condition 🔑
+-Some policies require MFA authentication (Condition: "Bool": {"aws:MultiFactorAuthPresent": true}).
+-Fix: Ensure MFA is enabled and used when logging in.
+
+7.Region or Service Restrictions 🌍
+-Policy conditions may restrict access to specific regions or services.
+-Fix: Check aws:RequestedRegion or service-specific conditions.
+
+✅ Best Practice:
+Start troubleshooting with IAM Policy Simulator to verify effective permissions, then check resource policies and org-level controls (SCPs, boundaries).
+
+---------------------------------------
+
+Automating security patches on EC2 instances.
+To automate security patches on EC2, we typically use AWS Systems Manager Patch Manager, which schedules and applies updates without manual intervention."
+
+Approach:
+1.Enable SSM Agent on EC2
+-Ensure the EC2 has the SSM Agent installed and an IAM role with AmazonSSMManagedInstanceCore policy.
+
+2.Define Patch Baseline
+-Create or use a default Patch Baseline in Systems Manager.
+-Specify which patches are approved (security-only or all critical updates).
+
+3.Create a Maintenance Window
+-Define when patches should be applied (e.g., Sundays at 2 AM).
+-Avoids downtime during peak hours.
+
+4.Register Targets
+-Assign EC2 instances to the maintenance window using tags for easy grouping.
+
+5.Automation Document Execution
+-Patch Manager runs AWS-RunPatchBaseline document during the window.
+
+6.Post-Patch Verification
+-Configure CloudWatch or SSM compliance reports to verify patch status.
+
+Extra options:
+-For Linux, can also use yum-cron or unattended-upgrades (Ubuntu) for automatic updates.
+-For Windows, use WSUS or Systems Manager.
+-Combine with SNS notifications for patch reports.
+
+✅ Best Practice for interviews:
+"Always tag EC2 instances by environment, automate patching in off-peak hours, and use compliance scans to ensure no instance is left unpatched."

@@ -1,0 +1,166 @@
+GIT
+
+What is the difference between rebase and merge? Which one do you prefer in CI/CD workflows?
+
+  rebase and merge are both used to integrate changes from one branch into another in Git, but they behave very differently, and choosing the right one is critical in CI/CD workflows.
+
+🔁 Merge vs Rebase: Key Differences
+Feature		merge						rebase
+Purpose		Combine histories				Rewrite history to appear linear
+History		Preserves all commits (with merge commits)	Rewrites history (makes it cleaner)
+Command		git merge feature				git rebase main
+Commit Graph	Branchy, shows where merges happened		Linear, like one single timeline
+Conflicts	Can happen during merge				Can happen during rebase
+Use Case	Collaboration, preserving context		Clean commit history, rebasing local work
+Safety		Always safe					Risky if rebasing shared/public branches
+
+✅ When to Use Each (CI/CD Context)
+🔹 Use Merge when:
+-You're merging a feature branch into main/dev.
+-You want to preserve branch history and see when/why merges happened.
+-You’re working with a shared team branch (e.g., others are pushing to it).
+-You're using pull requests (PRs) that do auto-merging on approval.
+
+git checkout main
+git merge feature-branch
+🟢 Merge is non-destructive and keeps collaboration safe.
+
+🔹 Use Rebase when:
+-You're working locally and want to clean up commits before pushing.
+-You want to keep a linear history in your branch.
+-You’re preparing a feature branch to integrate with latest main changes.
+
+git checkout feature-branch
+git rebase main
+⚠️ Avoid rebasing public/shared branches unless everyone knows what they're doing.
+
+🚀 CI/CD Best Practice Recommendation
+Context	Recommended
+Before Pull Request	✅ Rebase your branch onto latest main to reduce conflicts
+During Merge to Main	✅ Use Merge (Squash Merge) to retain a clean, traceable commit
+Automated CI	✅ Merge is safer — rebases can break history if done incorrectly
+Release Branching	✅ Merge for traceability, Rebase for hotfixes if needed cleanly
+
+🔧 Example Workflow in CI/CD
+1. Developer creates feature branch
+2. Rebase onto latest `main` before raising PR:
+   git checkout feature
+   git pull --rebase origin main
+3. Open Pull Request
+4. Jenkins/CI runs pipeline
+5. Merge into `main` (preferably squash merge)
+6. Jenkins deploys
+💡 Summary
+✅ Merge				✅ Rebase
+Team-safe and history-preserving	Great for cleaning up local commits
+Use when merging feature → 		main	Use before opening PR for clean history
+Leaves merge commits			Produces a linear, readable history
+Preferred in CI/CD pipelines		Preferred during local dev
+
+
+-------------------------------------------------
+
+Q7)How do you manage version control for infrastructure (Terraform/Ansible) in Git?
+
+I manage version control for infrastructure as code (IaC) using Git by following a structured and collaborative approach to ensure stability, traceability, and automation. Here's how I typically handle it:
+
+1.Git Repository Structure:
+-I maintain separate repositories or structured directories for different environments like dev, staging, and prod.
+-For Terraform, I follow a modular structure, where reusable modules are placed in a modules/ directory and called from environment-specific configuration folders.
+
+2.Branching Strategy:
+-I follow GitFlow or a trunk-based development strategy.
+-Feature branches are used for new infrastructure changes, and pull requests (PRs) are reviewed before merging to main or develop.
+
+3.Versioning and Tags:
+I use Git tags to version critical infrastructure changes, especially for reusable Terraform modules or Ansible roles. This allows easy rollback and traceability.
+
+4.Code Reviews & Approvals:
+All changes go through peer reviews via PRs. This ensures that changes are validated, and security or cost implications are considered.
+
+5.CI/CD Integration:
+-I integrate Git with CI/CD tools like Jenkins or GitHub Actions to automate Terraform plan and apply, or Ansible playbook execution.
+-Terraform plans are generated and stored as artifacts for approval before apply in production.
+
+6.State Management (Terraform-specific):
+I store Terraform state files in a remote backend like S3 with state locking via DynamoDB to avoid conflicts in collaborative environments.
+
+7.Secrets Handling:
+I avoid storing any sensitive information in Git. Instead, I use tools like Vault, AWS Secrets Manager, or Ansible Vault for secrets management.
+
+8.Documentation and Change Logs:
+I maintain clear README files and changelogs in each repo to explain the infrastructure setup and any recent updates.
+
+Example:
+For example, in one of my recent projects, we had a mono-repo structure for Terraform with separate folders for dev, QA, and prod. Each pull request would trigger a Jenkins pipeline to run terraform validate and terraform plan. Only after peer review and manual approval, it would allow terraform apply to run in higher environments. This helped us maintain a clean, auditable workflow with full visibility into infrastructure changes.
+
+
+---------------------------------------------------------------------------
+
+What would you do if you accidentally pushed credentials into a remote repository?
+
+If credentials were accidentally pushed to a remote repository, I would take immediate, multi-step action to mitigate the risk and prevent misuse:
+
+1. Revoke the Leaked Credentials Immediately
+-First, I would revoke or rotate the exposed credentials (e.g., AWS access keys, API tokens, database passwords) via the respective service provider or secrets manager.
+-This ensures that even if someone accessed the secret, it can no longer be used.
+
+2. Remove the Secrets from Git History
+Use tools like:
+ -git filter-repo or the legacy git filter-branch
+ -BFG Repo-Cleaner
+-These tools allow you to purge the credentials from the entire commit history.
+-After rewriting history, I’d force-push the cleaned branch (git push --force) and inform collaborators to re-clone or reset their local repositories.
+
+3. Notify Security/DevSecOps Teams
+-It’s important to transparently escalate the issue to the security team, especially in regulated environments.
+-They may perform impact assessments and ensure that any necessary compliance or audit steps are followed.
+
+4. Scan the Repository
+I would run secret scanning tools like:
+-TruffleHog, GitLeaks, or Talisman
+This helps to identify any other secrets that might have been inadvertently committed, ensuring a clean repo.
+
+5. Implement Preventive Measures
+To avoid future occurrences:
+-Enable pre-commit hooks using tools like pre-commit or husky that block secrets from being committed.
+-Integrate secret scanning in CI pipelines to fail builds if credentials are detected.
+-Use environment variables or secrets managers (like AWS Secrets Manager, HashiCorp Vault, or Azure Key Vault) to manage secrets outside code.
+
+6. Audit Logs and Monitor Usage
+-I would review access logs or CloudTrail (in AWS) to check if the compromised credentials were used after being pushed.
+-Based on the findings, additional security actions may be taken.
+
+Summary:
+Accidentally pushing credentials is a serious incident, but it can be managed effectively with quick revocation, history cleaning, transparent communication, and preventive automation. My goal is to contain the exposure, restore a secure state, and harden the process to prevent recurrence
+
+
+----------------------------------------------------------------------------------------
+
+
+What version control strategies do you follow for multi-environment deployments?
+
+For multi-environment deployments, I follow a branching and tagging strategy that ensures traceability and consistency. 
+Typically, main reflects production, while develop or feature branches are used for integration and testing. 
+We use Git tags to mark releases for QA, staging, and production so that each environment’s deployment is traceable to a specific commit. 
+Infrastructure and application code are version-controlled together, with environment-specific configuration separated out. 
+CI/CD pipelines handle promotion across environments, and production merges are protected with approvals. 
+This way, we maintain a clean, consistent flow of code from dev to prod without environment drift.
+
+-----------------------------------------------------------------------
+
+How do you resolve merge conflicts in Git during team-based workflows?
+
+Merge conflicts happen when two branches modify the same code. 
+My approach is to pull the latest code, attempt the merge, and carefully review the conflict markers Git places in the file. 
+I then decide, often in discussion with teammates, whether to keep my changes, theirs, or combine them. 
+After resolving, I mark the conflict as resolved, commit, and continue the merge. 
+To reduce conflicts, I keep my branch updated frequently with main and encourage smaller, incremental PRs. 
+In a team setting, I also communicate conflicts clearly and ensure proper code review before pushing the resolution.
+
+----------------------------------------------------------
+
+
+
+
+

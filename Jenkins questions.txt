@@ -1,0 +1,1239 @@
+
+
+How do you pass parameters between stages in a Jenkins declarative pipeline?
+
+In a Jenkins Declarative Pipeline, you can pass parameters between stages using the following techniques:
+✅ 1. Using Environment Variables
+You can set and reuse environment variables in different stages.
+🔹 Use env.VAR_NAME to access or modify shared values.
+
+✅ 2. Using script block and Groovy variables
+Groovy variables declared inside a script block in the top-level scope can be shared across stages (with care).
+⚠️ This works only inside script blocks because Declarative Pipelines limit access to Groovy features outside of them.
+
+✅ 3. Using stash and unstash for files
+If you're passing files between stages:
+
+groovy
+pipeline {
+    agent any
+    stages {
+        stage('Create File') {
+            steps {
+                sh 'echo Hello > msg.txt'
+                stash includes: 'msg.txt', name: 'messageFile'
+            }
+        }
+
+        stage('Read File') {
+            steps {
+                unstash 'messageFile'
+                sh 'cat msg.txt'
+            }
+        }
+    }
+}
+✅ 4. Using build and parameters for downstream jobs
+You can trigger downstream builds and pass parameters:
+
+groovy
+stage('Trigger Downstream') {
+    steps {
+        build job: 'child-job', parameters: [
+            string(name: 'MESSAGE', value: 'Hello from parent pipeline')
+        ]
+    }
+}
+⚠️ Limitations:
+-Environment variables are strings only.
+-Groovy variables must be declared outside stages and only accessed via script {}.
+-You cannot pass complex data types directly between stages in declarative syntax without using files or Jenkins features like stash or shared libraries.
+
+
+-------------------------------------------------------------------------------------
+
+What is an agent in Jenkins? How do you configure a pipeline to run on a specific agent?
+
+An agent in Jenkins is a machine or environment (either the Jenkins controller itself or a connected node/slave) where Jenkins runs your pipeline stages or steps.
+
+Agents are responsible for:
+-Allocating an execution environment.
+-Running build steps like sh, maven, docker, etc.
+-Managing workspace, tools, and artifacts.
+
+🧩 Types of Agents:
+Type	Description
+Any	Runs the pipeline or stage on any available agent.
+Label	Targets a node with a specific label (e.g., linux, docker).
+None	Disables automatic agent assignment, allowing stage-level agents.
+Docker	Runs the stage inside a specified Docker container.
+
+✅ How to Configure a Pipeline to Run on a Specific Agent
+🔹 1. Run on any available agent
+groovy
+pipeline {
+    agent any
+    stages {
+        stage('Build') {
+            steps {
+                echo "Running on any agent"
+            }
+        }
+    }
+}
+🔹 2. Run on a specific labeled agent
+If your Jenkins has agents labeled like linux or docker, use:
+
+groovy
+pipeline {
+    agent { label 'linux' }
+    stages {
+        stage('Test') {
+            steps {
+                echo "Running on the linux agent"
+            }
+        }
+    }
+}
+💡 Labels are defined in Jenkins node configuration.
+
+🔹 3. No global agent, stage-specific agents
+groovy
+pipeline {
+    agent none
+    stages {
+        stage('Build') {
+            agent { label 'maven' }
+            steps {
+                echo "Running only this stage on the maven agent"
+            }
+        }
+        stage('Test') {
+            agent { label 'docker' }
+            steps {
+                echo "Running this stage on the docker agent"
+            }
+        }
+    }
+}
+🔹 4. Run inside a Docker container
+groovy
+pipeline {
+    agent {
+        docker {
+            image 'node:14'
+            label 'docker-agent'
+        }
+    }
+    stages {
+        stage('Build') {
+            steps {
+                sh 'node --version'
+            }
+        }
+    }
+}
+🚨 Requires Jenkins to be set up with Docker and the appropriate plugin.
+
+🛠️ Where do you define agent labels?
+-Go to Manage Jenkins > Manage Nodes and Clouds
+-Click on an agent, then set the Labels field (e.g., linux, java8, build-node)
+
+Example:
+In one of my Jenkins setups, we had agents labeled for java11, docker, and windows. For a multi-platform application, I configured different stages to run on agents based on their needs—for example, building on java11, packaging in a docker agent, and testing UI on a windows agent. This helped ensure builds were environment-appropriate and efficient.
+
+
+-------------------------------------------------------------------------
+
+ Explain how you use shared libraries in Jenkins.
+
+Shared Libraries in Jenkins are a powerful way to reuse code across multiple pipelines. They help you:
+-Avoid duplication
+-Enforce standards
+-Share common logic (e.g., build, test, deploy steps)
+-They’re written in Groovy and can be version-controlled (typically in a Git repo).
+
+🧱 Structure of a Shared Library
+A shared library repo has a specific structure:
+(root)
+├── vars/
+│   └── sayHello.groovy       # Simple callable script steps
+├── src/
+│   └── org/example/MyClass.groovy  # Full-fledged classes
+├── resources/
+│   └── myTemplate.txt        # External files
+└── README.md
+📁 Folder Breakdown
+Folder	Purpose
+vars/	Contains global variables and functions (exposed as sayHello())
+src/	Holds Groovy classes or packages (like normal Java/Groovy projects)
+resources/	Contains non-code assets (e.g., config files, templates)
+
+🛠️ Step-by-Step: How to Use Shared Libraries in Jenkins
+✅ 1. Create a Shared Library Repository
+Example vars/sayHello.groovy:
+
+groovy
+def call(String name = 'User') {
+    echo "Hello, ${name}!"
+}
+✅ 2. Configure Shared Library in Jenkins
+Go to: Manage Jenkins → Configure System
+Find: Global Pipeline Libraries
+Add a new library:
+Name: my-shared-lib
+Default version: main or a tag/branch
+Retrieval method: e.g., Git
+Project Repository: e.g., https://github.com/yourorg/jenkins-shared-library.git
+
+✅ 3. Use the Library in Your Pipeline
+groovy
+@Library('my-shared-lib') _
+
+pipeline {
+    agent any
+    stages {
+        stage('Greet') {
+            steps {
+                sayHello('Aniket')
+            }
+        }
+    }
+}
+🔄 Advanced Usage
+🔸 Using classes from src/
+groovy
+// src/org/example/Utils.groovy
+package org.example
+
+class Utils {
+    static String shout(String input) {
+        return input.toUpperCase() + "!!!"
+    }
+}
+groovy
+@Library('my-shared-lib') _
+import org.example.Utils
+
+pipeline {
+    agent any
+    stages {
+        stage('Shout') {
+            steps {
+                script {
+                    def msg = Utils.shout('hello')
+                    echo msg
+                }
+            }
+        }
+    }
+}
+💡 Benefits
+-Centralized pipeline logic
+-Easy updates across all Jenkinsfiles
+-Cleaner and modular code
+-Supports versioning (e.g., use @Library('my-lib@v1.2.3'))
+
+
+------------------------------------------------------------------------------
+
+ Have you handled parallel execution in a pipeline? How and why?
+Yes — parallel execution in Jenkins pipelines is a powerful feature that I’ve used (and many engineers use) to optimize build times and speed up CI/CD workflows. Here's how and why it's done.
+
+✅ Why Use Parallel Execution in Jenkins?
+Situation						Benefit
+Run multiple tests (e.g., unit, integration, UI)	Saves time by running them concurrently
+Deploy to multiple environments				Speeds up delivery
+Run tasks on different OS/agents			Ensures cross-platform compatibility
+Perform post-build activities (e.g., archiving, scanning, reporting) together	Efficient utilization of build agents
+
+✅ How to Handle Parallel Execution in Jenkins Declarative Pipeline
+You can use the parallel block inside a stage → steps → script {} or directly inside a stage.
+
+🔹 Basic Example
+groovy
+pipeline {
+    agent any
+    stages {
+        stage('Parallel Tests') {
+            parallel {
+                stage('Unit Tests') {
+                    steps {
+                        echo 'Running Unit Tests...'
+                        sh './run-unit-tests.sh'
+                    }
+                }
+                stage('Integration Tests') {
+                    steps {
+                        echo 'Running Integration Tests...'
+                        sh './run-integration-tests.sh'
+                    }
+                }
+                stage('UI Tests') {
+                    steps {
+                        echo 'Running UI Tests...'
+                        sh './run-ui-tests.sh'
+                    }
+                }
+            }
+        }
+    }
+}
+🚀 All three test stages run at the same time (if sufficient agents are available).
+
+🔹 Using Scripted Parallel (Advanced Use)
+In Scripted Pipeline:
+
+groovy
+stage('Parallel Tasks') {
+    steps {
+        script {
+            parallel (
+                "Lint Check": {
+                    sh 'npm run lint'
+                },
+                "Security Scan": {
+                    sh 'trivy image myapp'
+                },
+                "Build Docs": {
+                    sh './build-docs.sh'
+                }
+            )
+        }
+    }
+}
+✅ Best Practices
+Practice	                                Reason
+Label your parallel branches clearly	        Easy tracking in Jenkins UI
+Use failFast: true (in Scripted Pipeline)       Stops other branches if one fails
+Ensure isolation (no shared files)	        Avoids race conditions
+Use different agents or containers if needed	Prevents resource contention
+
+🧪 Real-World Example: Parallel Testing on Multiple OS
+groovy
+stage('Cross-Platform Tests') {
+    parallel {
+        stage('Linux Tests') {
+            agent { label 'linux-node' }
+            steps {
+                sh './run-tests.sh'
+            }
+        }
+        stage('Windows Tests') {
+            agent { label 'windows-node' }
+            steps {
+                bat 'run-tests.bat'
+            }
+        }
+    }
+}
+
+
+---------------------------------------------------------------------------------------------
+
+ How do you implement approval gates in a Jenkins pipeline (e.g., manual approval before production)?
+Implementing approval gates in a Jenkins pipeline—especially before critical stages like production deployment—is a common and essential practice in CI/CD pipelines for security, compliance, and risk management.
+
+✅ Ways to Implement Approval Gates in Jenkins
+🔹 1. Using input Step (Declarative Pipeline)
+The simplest and most direct way is to use the input step to pause the pipeline and wait for human approval.
+
+groovy
+pipeline {
+    agent any
+
+    stages {
+        stage('Deploy to Staging') {
+            steps {
+                echo "Deploying to staging..."
+                // staging deployment logic
+            }
+        }
+
+        stage('Approval') {
+            steps {
+                input message: "Approve deployment to production?", ok: "Deploy"
+            }
+        }
+
+        stage('Deploy to Production') {
+            steps {
+                echo "Deploying to production..."
+                // production deployment logic
+            }
+        }
+    }
+}
+🧑‍💼 Only users with the proper Jenkins role can approve (based on security settings).
+
+🔹 2. Input Step with Approver Restrictions
+If you want to restrict who can approve, define an input step with submitter or submitterParameter.
+
+groovy
+stage('Approval') {
+    steps {
+        input(
+            message: "Approve prod deployment?",
+            ok: "Yes, deploy",
+            submitter: 'prod-approver1,prod-approver2'
+        )
+    }
+}
+✅ Only specified users (or those in specified roles) will see the prompt and can approve.
+
+🔹 3. Using when Condition with Parameters
+For more automated flows with optional human intervention:
+
+groovy
+parameters {
+    booleanParam(name: 'PROD_APPROVAL', defaultValue: false, description: 'Deploy to production?')
+}
+
+...
+
+stage('Deploy to Production') {
+    when {
+        expression { params.PROD_APPROVAL == true }
+    }
+    steps {
+        echo 'Deploying to Production...'
+    }
+}
+🧠 Useful in scheduled/manual jobs where someone explicitly checks a box to continue.
+
+🔹 4. Integrating with External Approval Systems
+For enterprise-grade or audited processes, you can integrate Jenkins with:
+-ServiceNow Change Management
+-JIRA workflow approvals
+-Slack + Jenkins Plugins (e.g., send Slack approval and wait for response)
+-GitHub PR review gates
+
+These require:
+-Custom Groovy logic or plugins
+-Jenkins Shared Libraries
+-Webhooks and API integrations
+
+🛡️ Best Practices
+Tip								Reason
+Use input in a separate stage					Easier to view & manage in UI
+Protect the Jenkins job with RBAC				Prevent unauthorized approvals
+Include logs and deployment details in approval message	        Helps approvers make informed decisions
+Set a timeout on input steps					Avoids stuck pipelines
+
+⏰ Example with Timeout and Fallback
+groovy
+stage('Approval') {
+    steps {
+        script {
+            try {
+                timeout(time: 1, unit: 'HOURS') {
+                    input message: 'Approve production deploy?', ok: 'Approve'
+                }
+            } catch (err) {
+                error("Deployment timed out or was rejected.")
+            }
+        }
+    }
+
+
+------------------------------------------------------------------------------
+
+
+How do you manage version control for infrastructure (Terraform/Ansible) in Git?
+
+I manage version control for infrastructure as code (IaC) using Git by following a structured and collaborative approach to ensure stability, traceability, and automation. Here's how I typically handle it:
+
+1.Git Repository Structure:
+-I maintain separate repositories or structured directories for different environments like dev, staging, and prod.
+-For Terraform, I follow a modular structure, where reusable modules are placed in a modules/ directory and called from environment-specific configuration folders.
+
+2.Branching Strategy:
+-I follow GitFlow or a trunk-based development strategy.
+-Feature branches are used for new infrastructure changes, and pull requests (PRs) are reviewed before merging to main or develop.
+
+3.Versioning and Tags:
+I use Git tags to version critical infrastructure changes, especially for reusable Terraform modules or Ansible roles. This allows easy rollback and traceability.
+
+4.Code Reviews & Approvals:
+All changes go through peer reviews via PRs. This ensures that changes are validated, and security or cost implications are considered.
+
+5.CI/CD Integration:
+-I integrate Git with CI/CD tools like Jenkins or GitHub Actions to automate Terraform plan and apply, or Ansible playbook execution.
+-Terraform plans are generated and stored as artifacts for approval before apply in production.
+
+6.State Management (Terraform-specific):
+I store Terraform state files in a remote backend like S3 with state locking via DynamoDB to avoid conflicts in collaborative environments.
+
+7.Secrets Handling:
+I avoid storing any sensitive information in Git. Instead, I use tools like Vault, AWS Secrets Manager, or Ansible Vault for secrets management.
+
+8.Documentation and Change Logs:
+I maintain clear README files and changelogs in each repo to explain the infrastructure setup and any recent updates.
+
+Example:
+For example, in one of my recent projects, we had a mono-repo structure for Terraform with separate folders for dev, QA, and prod. Each pull request would trigger a Jenkins pipeline to run terraform validate and terraform plan. Only after peer review and manual approval, it would allow terraform apply to run in higher environments. This helped us maintain a clean, auditable workflow with full visibility into infrastructure changes.
+
+
+---------------------------------------------------------------------------
+
+ Q. How do you trigger a pipeline based on a Git tag push instead of a branch commit?
+
+"To trigger a Jenkins pipeline on a Git tag push, I configure the pipeline to detect refs/tags/** and ensure tag discovery is enabled if using a Multibranch Pipeline. For declarative pipelines, I use when conditions and environment variables like GIT_TAG_NAME to differentiate tag builds. I also integrate GitHub/GitLab webhooks to trigger the pipeline immediately on tag creation, avoiding polling delays."
+
+
+---------------------------------------------------------
+
+Q. Have you used Git hooks or automation to enforce commit message standards?
+
+
+---------------------------------------------------------
+
+
+You have a containerized app running fine locally but failing on Jenkins – what steps do you take to debug it?
+If a containerized app works locally but fails in Jenkins, I treat it as an environmental difference or CI-specific issue. I follow a structured debugging approach:
+
+🔍 1. Check Jenkins Build Logs
+First, I review the Jenkins console output and logs to identify:
+-Specific errors (e.g., port conflicts, image pull failures, permission issues).
+-Whether the failure is during docker build, docker run, or application startup.
+
+🛠️ 2. Compare Local vs Jenkins Environment
+"Most issues arise due to environmental differences."
+I compare:
+-Base OS/image versions
+-Docker version
+-Available resources (RAM, CPU)
+-Environment variables (missing in Jenkins?)
+-File paths or volumes (absolute vs relative paths)
+
+📂 3. Validate Jenkinsfile or Pipeline Script
+Check for mistakes in the Docker commands or steps in the Jenkinsfile.
+
+Make sure:
+-Docker daemon is available (docker ps works)
+-Workspace directory is mapped correctly
+-Credentials/secrets are passed securely
+
+🧪 4. Reproduce in Jenkins Agent (If Needed)
+I use Jenkins “Replay”, SSH into the agent, or spin up a local agent container that mimics Jenkins to reproduce the issue:
+bash
+docker run -it --rm -v $(pwd):/app jenkins-agent-image bash
+Then, try running the same build steps manually.
+
+🔐 5. Check for Permissions or Docker-in-Docker Issues
+If Jenkins runs Docker builds inside a container (DinD), I ensure:
+-Correct Docker socket is mounted (/var/run/docker.sock)
+-Jenkins agent has Docker permissions
+-Caching and network modes are configured properly
+
+🧼 6. Clean Up and Retry
+Clear Docker cache/layers in Jenkins if build fails inconsistently:
+bash
+docker system prune -a
+Sometimes a stale image or network issue causes inconsistencies.
+
+📦 7. Add Debug Logs and Fallbacks
+-Temporarily add set -x, printenv, or docker logs in Jenkinsfile to gather more info.
+-Use tools like curl, nc, or dig to test connectivity and DNS inside containers.
+
+✅ Summary (Wrap-Up):
+I treat Jenkins failures methodically—starting with log analysis, then comparing environments, verifying pipeline configs, and reproducing in the agent. Most issues are due to missing environment variables, Docker permission problems, or CI-specific quirks like volume paths or resource limits.
+
+
+---------------------------------------------------------
+
+
+
+How do you audit and rotate credentials stored in DevOps tools?
+
+I follow a security-first approach to audit and rotate credentials in DevOps tools. This involves using secret management systems, implementing least privilege access, and automating regular rotation and audit policies across tools like Jenkins, GitHub, AWS, and Kubernetes.
+
+🔍 1. Auditing Credentials
+🧾 a. Identify and Inventory Credentials
+I maintain an inventory of all secrets used in:
+CI/CD tools (Jenkins, GitHub Actions, GitLab)
+Cloud provider IAM credentials
+Kubernetes Secrets
+APIs and 3rd-party integrations
+
+📊 b. Enable Audit Logs
+Enable logging/audit trails in:
+Jenkins: Enable credential usage logging with plugins.
+GitHub/GitLab: Enable org-level audit logs.
+AWS: Use CloudTrail, IAM Access Analyzer.
+Vault: Built-in audit devices.
+
+🔐 c. Scan for Hardcoded Secrets
+Use tools like:
+-truffleHog, git-secrets, gitleaks to detect secrets in code.
+-CI pipeline steps to block hardcoded secrets during PR review.
+
+🔄 2. Rotating Credentials
+🔁 a. Manual Rotation (if no manager in place)
+Periodically rotate API keys, tokens, passwords manually.
+
+Update CI tools (e.g., Jenkins credentials store, GitHub secrets).
+
+🤖 b. Automated Rotation (Best Practice)
+Wherever possible, I automate credential rotation using tools like:
+AWS Secrets Manager / Parameter Store
+-Automatically rotate DB passwords, API keys.
+-Terraform and CI pipelines pull secrets on-demand.
+
+HashiCorp Vault
+-Issue short-lived dynamic credentials (e.g., DB, AWS).
+-Credentials auto-expire, reducing rotation burden.
+
+Azure Key Vault / GCP Secret Manager
+-Native auto-rotation support for certain secrets.
+
+CI/CD Integration
+-Pull secrets dynamically at runtime, rather than storing statically.
+
+Example: Jenkins pipeline using withVault block:
+groovy
+withVault([vaultSecrets: [[path: 'secret/data/db', secretValues: [[envVar: 'DB_PASS', vaultKey: 'password']]]]]) {
+    sh 'echo $DB_PASS | some-script'
+}
+⚙️ 3. Best Practices Followed
+-Least privilege access: Each secret only accessible by services that need it.
+-RBAC & audit logging: Control and track who accessed what, and when.
+-Short-lived tokens: Use temporary IAM roles or session tokens.
+-Secrets in environment, not code: Inject secrets at runtime (CI/CD, kube manifests).
+-Alerting: Notifications when credentials are about to expire or overused.
+
+✅ Summary (Wrap-Up):
+I regularly audit, rotate, and securely manage credentials using tools like Vault, AWS Secrets Manager, and native CI/CD mechanisms. I also ensure secrets are short-lived, traceable, and never hardcoded—helping maintain compliance and reduce risk across DevOps pipelines.
+
+
+---------------------------------------------------------
+
+Q. What is your approach to shift-left testing in a DevOps pipeline?
+My approach to shift-left testing is to integrate testing as early and as frequently as possible in the DevOps pipeline—right from the time code is written. This helps catch issues earlier, reduce feedback loops, and improve overall code quality and deployment confidence.
+
+🛠️ 1. Automate Tests at the Earliest Stage
+I embed unit tests, linting, and static code analysis in the build stage of the CI pipeline:
+-Use tools like pytest, JUnit, eslint, or pylint
+-Run tests automatically on every commit or pull request (PR)
+-Fail the build if code doesn't pass predefined quality gates
+
+Example:
+yaml
+steps:
+  - name: Run Unit Tests
+    run: pytest tests/
+  - name: Static Analysis
+    run: pylint src/
+🔍 2. Integrate Code Quality & Security Scans
+Use tools like:
+-SonarQube, CodeClimate for quality
+-Trivy, Checkov, Snyk for container and IaC security
+
+Run scans before code merges, not after deployment.
+
+🚀 3. PR-Based Testing & Feedback
+"I integrate automated tests in pull requests so developers get instant feedback."
+Enforce branch protection rules so PRs can't merge unless:
+-Unit tests pass
+-Code coverage meets the threshold
+-Security scans are clean
+
+🧪 4. Environment-Based Testing Stages
+I design CI/CD pipelines with distinct test stages:
+Build Stage:
+-Unit tests, syntax checks
+
+Pre-deploy Stage:
+-Integration tests, API contract tests (using Postman or Newman)
+
+Post-deploy Stage:
+-Smoke tests, performance tests, synthetic monitoring
+
+🔄 5. Use of Mocks and Test Containers
+For shift-left API/integration testing, I:
+-Mock external dependencies using tools like WireMock
+-Use test containers (e.g., for DBs) to test logic without real infra
+
+📊 6. Feedback Loops & Observability
+Ensure test results are:
+-Visible in PRs or CI dashboards (e.g., Jenkins, GitHub Actions)
+-Alerted via Slack or email if a test fails
+
+Also track metrics like:
+-Time to feedback
+-Test failure rates
+
+✅ Summary (Wrap-Up):
+In short, I implement shift-left testing by embedding unit, integration, security, and quality tests early in the CI pipeline. This enables fast feedback, safer code merges, and reduces the cost of fixing bugs later in the lifecycle.
+
+---------------------------------------------------------
+
+Q. What tools have you used for vulnerability scanning
+I’ve worked with several vulnerability scanning tools across code, containers, dependencies, and cloud infrastructure. I integrate them into the DevSecOps pipeline to ensure security is enforced early and continuously.
+
+🔧 1. Container & Image Scanning
+🐳 Trivy
+Lightweight, fast scanner for Docker images and Kubernetes clusters.
+Scans OS packages, language libraries (pip/npm), and IaC files.
+Used in CI/CD to block builds if CVEs exceed a severity threshold.
+
+bash
+trivy image myapp:latest
+
+🐳 Anchore (Grype)
+SBOM-based scanner with policy-as-code.
+Used Grype CLI to scan images and integrated with GitHub Actions.
+
+☁️ AWS ECR Image Scanning
+Used Amazon Inspector/ECR native scanning to detect vulnerabilities in container images pushed to AWS ECR.
+
+🧬 2. Dependency Scanning (SCA – Software Composition Analysis)
+📦 Snyk
+Used to scan for vulnerabilities in:
+Application dependencies (requirements.txt, package.json)
+Dockerfiles and Kubernetes manifests
+Integrated into GitHub/GitLab pipelines to auto-fix or block PRs.
+
+📦 OWASP Dependency-Check
+Scans Java, Maven, and other dependency files for known CVEs.
+Used in Jenkins pipelines for legacy apps.
+
+🔐 3. Static Code & IaC Scanning
+🔍 Checkov / tfsec
+Scan Terraform and CloudFormation for misconfigurations and security issues.
+Integrated into Terraform workflows to enforce policies (e.g., no open security groups, no hardcoded secrets).
+
+bash
+checkov -d . --quiet
+📜 Bandit
+Python static analysis for security vulnerabilities (e.g., eval(), weak cryptography).
+
+⚙️ Semgrep
+Lightweight static analysis engine.
+Used for custom security rules in CI (e.g., detect secrets in code or insecure patterns).
+
+☁️ 4. Cloud-Specific Security Tools
+🛡️ AWS Inspector
+Scans EC2 instances, Lambda functions, and ECR images.
+
+Automatically triggered on new deployments.
+
+🧱 Azure Defender / GCP Security Command Center
+Cloud-native threat detection and vulnerability management.
+
+✅ Summary (Wrap-Up):
+I use a combination of tools like Trivy, Snyk, Checkov, and Bandit to scan across application code, dependencies, containers, and cloud infrastructure. These are tightly integrated into CI/CD to ensure that vulnerable code never reaches production.
+
+
+--------------------------------------------------------------
+
+Q. What is your method for post-deployment monitoring and alerts in a production environment?
+After a production deployment, I implement automated monitoring and alerting to ensure the application is healthy, performant, and meeting SLAs. My approach includes application-level, infrastructure-level, and user-experience-level monitoring, combined with actionable alerting.
+
+📈 1. Application & Service Monitoring
+I use APM tools like AppDynamics, New Relic, or Datadog APM to track:
+Response times
+Error rates
+Throughput
+Slow transactions
+For microservices, I monitor inter-service latency and dependencies.
+I also enable distributed tracing (e.g., with OpenTelemetry) for debugging across services.
+
+☁️ 2. Infrastructure & Cloud Resource Monitoring
+For cloud-native infrastructure:
+AWS CloudWatch, Azure Monitor, or GCP Operations Suite
+Track metrics like:
+CPU, memory, disk usage
+Load balancer health
+Auto Scaling events
+I set up CloudWatch Alarms or Azure alerts to notify on threshold breaches.
+
+☸️ 3. Kubernetes & Container Monitoring
+I use tools like:
+Prometheus + Grafana for metrics and custom dashboards
+Kube-state-metrics and node-exporter for cluster health
+Liveness/readiness probes for pod health
+Alerts are triggered for:
+CrashLoopBackOff
+Failed deployments
+Resource starvation
+
+🧪 4. Post-Deployment Smoke Tests & Synthetic Monitoring
+Automatically trigger smoke tests after deployment using scripts or CI/CD jobs.
+Use synthetic monitors (e.g., Pingdom, Datadog Synthetics, Azure App Insights) to simulate user traffic and validate availability from different geographies.
+
+📨 5. Alerting Strategy
+Integrated alerts via:
+Slack, Microsoft Teams, PagerDuty, or Opsgenie
+Email or SMS for high-severity issues
+Use severity levels and alert thresholds to avoid noise (e.g., warn, critical)
+Include runbooks or playbooks linked in alerts for fast resolution
+
+📊 6. Logging & Correlation
+Centralized logging with:
+ELK Stack, EFK, Fluent Bit, Datadog Logs, or CloudWatch Logs
+Correlate logs with metrics and traces for end-to-end observability
+
+🔄 7. Continuous Feedback Loop
+Regularly review:
+Alert fatigue and adjust thresholds
+Post-incident reviews (PIRs) after outages
+Deploy dashboards on TVs or shared screens for real-time visibility
+
+✅ Summary (Wrap-Up):
+I combine monitoring, alerting, synthetic testing, and tracing in an automated, layered approach. This helps detect anomalies
+
+
+----------------------------------------------------
+
+Explain your CI/CD pipeline design. Which tools did you use and why?
+In my recent project, I designed and managed a robust CI/CD pipeline aimed at ensuring fast, reliable, and secure delivery of microservices-based applications deployed on Kubernetes.
+
+CI/CD Pipeline Design Overview:
+1.Source Code Management – Git (GitHub/GitLab):
+-We used GitHub for version control and to trigger pipeline workflows based on actions like PR creation, merges, and tag pushes.
+-Branching strategy (feature, dev, release, main) ensured clean code promotion.
+
+2.CI – Jenkins/GitLab CI:
+-Jenkins was our primary CI tool due to its plugin ecosystem and flexibility.
+-On code push, Jenkins pipelines were triggered to:
+  Pull the latest code
+  Run unit tests (using frameworks like JUnit or PyTest)
+  Perform static code analysis (via SonarQube)
+  Check for vulnerabilities (using Snyk or Trivy)
+  Build Docker images
+  Push artifacts to Artifactory or Docker Hub
+
+3.containerization – Docker:
+-Each microservice was containerized for consistency across environments.
+-Docker images were tagged using semantic versioning or Git commit SHA for traceability.
+
+4.CD – ArgoCD/Helm/Kubectl:
+-For continuous delivery, we leveraged ArgoCD due to its GitOps approach and Kubernetes-native deployment model.
+-Helm charts were used to templatize and parameterize deployments.
+-ArgoCD monitored our GitOps repo and automatically synced approved changes to the target cluster.
+
+5.Environment Strategy:
+-We had separate environments for Dev, QA, UAT, and Prod.
+-Deployment to higher environments was gated by approval jobs in Jenkins and security scans.
+
+6.Notifications and Observability:
+-Slack and email notifications for pipeline status.
+-Post-deployment checks using tools like Prometheus + Grafana and alerts via PagerDuty ensured monitoring of critical services.
+
+Why These Tools:
+-Jenkins: Mature ecosystem, highly customizable for complex workflows.
+-Docker: Industry standard for containerization.
+-Helm: Simplifies Kubernetes deployments and environment-specific overrides.
+-ArgoCD: GitOps-based deployment tool with clear audit trails and rollback capability.
+-SonarQube/Snyk: Integrated shift-left security and code quality checks.
+-Prometheus/Grafana: For real-time metrics and visualization.
+
+This setup helped us achieve faster feedback loops, minimized human errors, ensured rollback safety, and maintained high availability in production environments.
+
+
+-----------------------------------------------------------------------------------------------
+
+How do you create a Jenkins pipeline for multi-environment deployment (dev/stage/prod)?
+To implement multi-environment deployments in Jenkins, I design a parameterized declarative pipeline that promotes the same artifact across Dev, Stage, and Prod environments using an approval-based promotion model.
+
+High-Level Pipeline Structure:
+1.Code Commit Triggers Build (CI Stage):
+-The pipeline starts with a code commit or merge event in Git.
+-Jenkins pulls the code, runs unit tests, performs static analysis (e.g., SonarQube), and security scans (e.g., Trivy/Snyk).
+-Upon successful validation, it builds a Docker image and pushes it to a registry like ECR or Docker Hub.
+-This stage is identical for all environments to ensure consistency.
+
+2.Parameterized Deployment Stage (CD Stage):
+-The pipeline uses input parameters to determine the target environment (dev, stage, or prod).
+-Each environment has its own Kubernetes namespace or cloud deployment configuration, but reuses the same Helm charts or Terraform modules.
+
+3.Dev Deployment:
+-Automatically triggered after the build stage.
+-Deployment is done via Helm, kubectl, or Terraform depending on the infra/app type.
+-Post-deployment health checks and basic smoke tests are executed.
+
+4.Stage Deployment (Requires Manual Approval):
+-Includes a Jenkins input step for QA or release manager approval.
+-Post-approval, the same artifact from the Dev stage is deployed to the Stage environment.
+-Integration and regression tests are triggered after deployment.
+
+5.Prod Deployment (Gate-Controlled):
+-Final promotion is gated by another manual approval, usually restricted to leads or DevOps team.
+-Canary or blue-green deployment strategies can be used for zero-downtime.
+-Monitoring and alerting integrations (e.g., Prometheus, Slack) are active here.
+
+6.Post-Deployment Hooks:
+-Notifications (Slack/email)
+-Rollback hooks or tracking Jira stories for deployment
+
+Why This Design?
+-onsistency: Same artifact flows across all environments.
+-Safety: Manual gates reduce the risk of unintended production impact.
+-Flexibility: Parameterization and templating allow reuse across microservices and teams.
+-Observability: Metrics and logs are centralized for post-deployment monitoring.
+
+Tools Used:
+-Jenkins (declarative pipeline)
+-Git + Webhooks
+-Docker + Helm
+-ArgoCD or kubectl
+-Prometheus/Grafana
+-Slack/Jira integrations
+
+This approach provides a balance between automation and control, enabling rapid delivery while maintaining environment-specific integrity and governance.
+
+--------------------------------------------------------------------------
+
+
+What’s the difference between freestyle and pipeline jobs in Jenkins?
+
+In Jenkins, Freestyle and Pipeline jobs are two different approaches to defining CI/CD workflows, each with its own use cases and limitations.
+
+1. Freestyle Job:
+-A Freestyle job is a GUI-based, simpler job type used for basic automation tasks like building, testing, or deploying code.
+-Configuration is done through the Jenkins web UI using dropdowns and checkboxes.
+-It supports adding build steps and post-build actions, but lacks complex logic or version control.
+
+Limitations:
+-Hard to manage for complex workflows or multi-stage deployments.
+-Not scalable or portable.
+-No proper versioning of job configuration (stored in Jenkins UI, not in Git).
+-Difficult to include logic like loops, conditionals, or parallel steps.
+
+2. Pipeline Job:
+-Pipeline job is code-based and written in Groovy DSL, usually stored as a Jenkinsfile in the source repo.
+-It supports both Declarative and Scripted syntaxes.
+-Pipelines are much more powerful, supporting:
+ -Multi-stage workflows (build, test, deploy)
+ -Conditional logic, retries, and parallel execution
+ -Environment-specific deployments
+ -Integration with SCM, approvals, and rollback mechanisms
+
+Advantages:
+-As Code – version-controlled with your application.
+-Scalable – better suited for microservices and cloud-native workloads.
+-Reusable – via shared libraries and templates.
+-Extensible – integrates with approvals, notifications, and external tools.
+
+Summary:
+Feature		      Freestyle Job			Pipeline Job
+Configuration		UI-based	       		Code-based (Jenkinsfile)
+Complexity Support	Simple				Complex workflows
+Version Control		Not versioned			Stored in Git with app code
+Flexibility		Limited	                        Highly flexible (loops, conditions)
+Best for		Quick PoCs or legacy builds	Modern, scalable CI/CD pipelines
+
+In my experience, I prefer pipeline jobs for anything beyond basic tasks because they offer better maintainability, traceability, and integration with modern DevOps practices.
+
+-------------------------------------------------------------------------------------
+
+How do you handle Jenkins pipeline failures? Give a real-time issue and how you solved it.
+
+When a Jenkins pipeline fails, I follow a structured troubleshooting and resolution approach to quickly identify the root cause and ensure minimal disruption.
+
+My General Approach:
+1.Analyze logs – I start by checking the stage where the pipeline failed and review the logs to pinpoint errors.
+2.Check recent changes – I correlate the failure with recent commits, pipeline config changes, or dependency updates.
+3.Reproduce locally – If needed, I replicate the issue outside Jenkins to isolate environment-specific issues.
+4.Communicate – If it’s a blocker for other developers or a release, I immediately notify relevant teams.
+5.Fix and harden – After resolving the issue, I update the pipeline for better failure detection or retry logic to avoid recurrence.
+
+Real-Time Example:
+Issue:
+We had a Jenkins pipeline that failed during the Docker image build stage after a new code push. The error was:
+COPY failed: file not found in build context.
+
+Root Cause:
+A developer renamed a file in the Git repo but forgot to update the Dockerfile’s COPY instruction. The pipeline failed when trying to build the image because the specified file didn’t exist.
+
+Steps I Took to Resolve It:
+-Investigated the logs in the Jenkins console and identified the failing COPY command.
+-Reviewed the recent Git commit to trace the filename change.
+-Worked with the developer to update the Dockerfile with the correct filename.
+-Committed the fix and re-triggered the pipeline, which completed successfully.
+-As a preventive measure, I added a pre-build shell step to validate the presence of required files before the Docker build.
+-Also enhanced Slack notifications to alert the dev team instantly on build failure with the exact error and commit link.
+
+Takeaway:
+Pipeline failures are inevitable, but the key is to respond quickly, automate validation where possible, and continuously improve the pipeline's resilience and observability. My focus is always on root cause resolution and preventive action, not just a quick fix.
+
+
+------------------------------------------------------------------------------------------------------
+
+Have you integrated code quality tools like SonarQube? How do you do it?
+
+Yes, I’ve integrated SonarQube into CI pipelines to ensure consistent code quality, maintainability, and early detection of bugs and security vulnerabilities.
+
+Why SonarQube?
+SonarQube provides static code analysis and gives immediate feedback on code quality, code smells, duplications, vulnerabilities, and adherence to coding standards. It helps us enforce shift-left practices in our DevOps pipeline.
+
+Integration Approach in Jenkins Pipeline:
+1.Set Up SonarQube Server:
+-Installed and configured SonarQube (usually via Docker or a VM).
+-Connected it to a PostgreSQL backend.
+-Configured quality gates and coding rules for the relevant tech stack (Java, Python, JS, etc.).
+
+2.Install SonarQube Scanner:
+-Installed the SonarQube Scanner plugin in Jenkins.
+-Set up global tool configuration with the SonarQube server URL and authentication token.
+
+3.Configure Jenkinsfile:
+In our Jenkins declarative pipeline, I added a SonarQube stage like this:
+
+groovy
+pipeline {
+  agent any
+  tools {
+    maven 'Maven3'
+  }
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+    stage('Code Quality Analysis') {
+      steps {
+        withSonarQubeEnv('SonarQube-Server') {
+          sh 'mvn clean verify sonar:sonar'
+        }
+      }
+    }
+    stage('Quality Gate') {
+      steps {
+        timeout(time: 2, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
+        }
+      }
+    }
+  }
+}
+
+4.Using Quality Gates:
+-Implemented quality gates to block the pipeline if critical issues or vulnerabilities were detected.
+-This enforced standards before allowing merges or deployments to higher environments.
+
+Benefits Achieved:
+-revented poor-quality code from reaching staging/production.
+-Gave developers immediate feedback on technical debt.
+-Improved long-term maintainability and reduced defect leakage.
+
+So yes, SonarQube is a key part of my CI/CD practice to support clean, secure, and maintainable code across the SDLC.
+
+----------------------------------------------------------------------------------------
+
+
+Describe your end-to-end CI/CD workflow. Which tools did you use and why? 
+
+In my last project, we implemented an end-to-end CI/CD pipeline using GitHub, Jenkins, Terraform, Helm, and ArgoCD. 
+Code was pushed to GitHub, where PR checks enforced linting and unit tests. 
+Jenkins handled CI: building Docker images, running tests, and pushing artifacts to ECR. 
+Terraform modules provisioned infra, while Helm charts managed app deployments across Dev, QA, Staging, and Prod. 
+For CD, we used ArgoCD with automated sync for non-prod and approval-based manual promotion for prod. 
+Deployments followed blue-green or rolling strategies depending on the service. 
+We integrated SonarQube, Trivy, and Checkov for code quality and security scans, and monitored deployments using Prometheus, Grafana, and CloudWatch. 
+This setup gave us a secure, repeatable, and fully automated pipeline with quick rollback options.
+
+-----------------------------------------------------
+
+How do you handle rollback scenarios in CI/CD pipelines?
+
+I design my CI/CD pipelines to support automated rollbacks for both application and infrastructure. We version all artifacts and Helm charts so we can easily redeploy a previous version. For Kubernetes apps, I use helm rollback or ArgoCD to sync to the last stable Git commit. Terraform infra is rolled back by checking out the previous Git commit and re-applying it using remote state. Our Jenkins/GitLab pipelines include a post { failure { ... } } stage to trigger rollback automatically if health checks or monitoring alerts indicate failure. For zero-downtime services, we use blue-green or canary deployments, which allow instant traffic switchback if a release misbehaves. This ensures quick recovery and minimal downtime in production.
+
+
+In our CI/CD pipelines, we always have rollback strategies ready for both application and infrastructure. For applications deployed via Helm to Kubernetes, we use helm rollback or ArgoCD to revert to the previous release if health checks or alerts fail. We also use blue-green and canary deployments so we can shift traffic back instantly if the new version misbehaves.
+For infrastructure, we version our Terraform modules and store state remotely in S3 with locking. If a change causes an issue, we revert to the previous module version or restore a known good state. We never apply destructive changes without peer review and plan approval.
+We also maintain previous artifacts in Artifactory, so if a deployment on VMs fails, Jenkins can redeploy the last known good version. All rollbacks are automated where possible, and triggered by monitoring tools like Prometheus or CloudWatch. Additionally, we use feature flags, staged environments, and approval gates to minimize the need for rollbacks.
+  
+-----------------------------------------------------
+
+Explain how you optimize build and deployment pipelines for speed and efficiency.
+
+1. Optimize Build Stage
+Parallelization: Run independent jobs (linting, tests, security scans) in parallel instead of sequentially.
+Caching dependencies:
+Cache Maven/Gradle, npm, pip, Go modules, Docker layers, etc.
+Example: Use Docker multi-stage builds so dependencies don’t rebuild every time.
+Incremental builds: Build only changed modules/services instead of the entire repo.
+Use lightweight base images: Reduce Docker image size → faster pull/push.
+
+🔹 2. Optimize Test Stage
+Shift-left testing: Run unit & lint checks early, before full builds.
+Test parallelization: Distribute tests across multiple nodes/executors.
+Selective testing: Run only relevant test suites for the code being changed (via git diff).
+
+🔹 3. Deployment Optimization
+Blue-Green / Canary Deployments: Reduce downtime while minimizing risk.
+Immutable deployments: Replace instances/containers rather than patching them in place.
+Rolling updates (Kubernetes): Deploy gradually → minimizes impact while speeding up release cycles.
+Automated health checks: Quickly detect failures and trigger rollback.
+
+🔹 4. Pipeline Efficiency Practices
+Pipeline as Code: (Jenkinsfile, GitHub Actions YAML, GitLab CI YAML) → version-controlled, repeatable.
+Fail fast: Stop pipeline early on errors (don’t run later stages if linting/unit tests fail).
+Use matrix builds: Run across multiple environments (e.g., Python 3.8/3.9) in parallel.
+Artifact reuse: Store and re-use built artifacts instead of rebuilding in each stage.
+
+🔹 5. Infrastructure for Speed
+Autoscaling build agents: Use Kubernetes runners/agents to scale builds on demand.
+Ephemeral build agents: Ensure clean builds while avoiding environment setup overhead.
+Optimize hardware/resources: Cache volumes, increase CPU/memory for heavy builds.
+
+🔹 6. Observability & Continuous Improvement
+Measure pipeline duration per stage (Jenkins Blue Ocean, GitHub Actions insights).
+Identify bottlenecks and optimize iteratively.
+Add monitoring/alerts if pipelines slow down significantly.
+
+✅ Sample Interview Answer
+
+*"To optimize CI/CD pipelines, I focus on both build and deployment stages. On the build side, I enable dependency caching, use Docker multi-stage builds to reduce image size, and run tests and linting in parallel to cut down time. I also implement incremental builds so only changed modules are built. For deployments, I use rolling updates or blue-green deployments to ensure zero downtime and quick rollback if needed.
+At the pipeline level, I enforce 'fail-fast' principles, so failures are caught early, and use artifact repositories so we don’t rebuild the same artifacts repeatedly. I also leverage autoscaling build agents in Kubernetes, which speeds up parallel jobs during peak hours. Finally, I continuously monitor pipeline metrics to identify bottlenecks and fine-tune resource usage. These practices together have helped reduce pipeline times significantly while improving reliability and efficiency."*
+
+
+In my previous project, our CI/CD pipeline initially took around 40 minutes for every build and deployment, which slowed down developer feedback and delayed releases. I worked on optimizing it in multiple ways.
+
+First, I introduced dependency caching for Maven and npm packages and enabled Docker layer caching, which reduced rebuild time significantly. I also restructured the pipeline to run linting, unit tests, and security scans in parallel instead of sequentially. For deployments, we switched from manual approvals and full redeploys to rolling updates in Kubernetes with automated health checks, which minimized downtime and reduced deployment time.
+
+Finally, we implemented fail-fast logic, so if a linting or unit test failed, the pipeline stopped immediately instead of wasting resources running the rest of the stages. With these improvements, we brought the pipeline time down from 40 minutes to about 12 minutes, while also making deployments more reliable and automated. This directly improved developer productivity and release velocity.
+
+-----------------------------------------------------
+
+ How do you integrate configuration management with CI/CD pipelines?
+
+1️⃣ Version Control as Source of Truth
+All configuration code (playbooks, cookbooks, manifests, roles, modules) is stored in Git.
+Branching strategy (GitFlow / trunk-based) is followed → every change is reviewed via PRs/MRs.
+Ensures infra changes go through the same pipeline as application code.
+
+2️⃣ Pipeline Stages
+CI Stage (Validation):
+Run syntax checks (ansible-lint, puppet-lint, foodcritic for Chef).
+Run unit tests (e.g., Molecule for Ansible, Test Kitchen for Chef).
+Use static analysis tools to catch misconfigurations.
+CD Stage (Deployment):
+Pipeline triggers Ansible playbooks / Chef cookbooks / Puppet manifests to configure target servers.
+Use inventory/environment variables to differentiate dev, staging, prod.
+
+Example:
+Jenkins/GitLab pipeline runs:
+ansible-playbook -i inventories/staging site.yml
+
+3️⃣ Secrets & Variables Management
+Integrate pipeline with Vault / AWS Secrets Manager / GitLab CI variables / Jenkins credentials plugin.
+Inject secrets dynamically instead of hardcoding in playbooks.
+
+4️⃣ Environment-Specific Deployments
+Use separate inventories/environments (dev, stage, prod) in Ansible.
+In Chef, use environment files to version cookbooks differently.
+In Puppet, maintain environment directories (/etc/puppetlabs/code/environments/).
+
+5️⃣ Feedback & Monitoring
+After applying configs, pipeline runs smoke tests (curl endpoints, check service status).
+Monitoring tools (Prometheus, ELK, Splunk) validate deployment success.
+
+✅ Interview-Ready Answer
+
+*"I always integrate configuration management with CI/CD to ensure infrastructure changes follow the same workflow as application code.
+For example, with Ansible, I store playbooks and roles in Git. When a developer pushes changes, the pipeline runs linting, syntax checks, and Molecule tests. If they pass, Jenkins/GitLab triggers the playbook against the target environment, using environment-specific inventories and variables. Secrets are injected securely from Vault or Jenkins credentials.
+For Chef, I used Test Kitchen to validate cookbooks and promoted them across environments via pipelines. With Puppet, I integrated manifests into GitLab CI and used r10k to deploy environment-specific code.
+This approach ensures consistency, reduces manual errors, and provides full auditability of configuration changes across dev, staging, and production."*
+
+
+---------------------------------
+
+Explain how you'd prioritize and resolve multiple pipeline failures under tight deadlines.
+
+
+1.Triage & Assess Impact
+First, I quickly determine the scope and impact of each failure:
+Does it affect production deployments or just a feature branch?
+Is it blocking critical releases or a non-urgent test build?
+Is it affecting multiple teams or a single developer?
+I prioritize failures that directly impact customer-facing releases or production stability.
+
+2.Categorize Failures
+Critical blockers: Deployment to prod failed, business-critical CI/CD stages down.
+High priority: Failures on main branch builds, integration tests, or security scans.
+Medium/low priority: Failures in non-critical feature branches, linting issues, or flaky test pipelines.
+
+3.Parallelize Work
+I assign or escalate critical failures to the right owners (infra, app dev, QA) immediately.
+While high-impact failures are being fixed, I log lower-priority ones for later resolution.
+Use chat channels, incident bridge, or ticketing system to track ownership and progress.
+
+4.Quick Diagnosis & Containment
+Check CI/CD logs, recent commits, infra changes, dependency updates to identify root cause.
+If possible, apply a quick rollback / workaround (e.g., revert faulty commit, rerun with cached deps, increase timeout).
+Ensure teams can continue working by unblocking the main branch or deploying hotfixes.
+
+5.Communication
+-Keep stakeholders informed with clear status updates:
+  What’s broken
+  What’s being done
+  Estimated recovery time
+-This reduces pressure and avoids duplicate troubleshooting by multiple teams.
+
+6.Longer-Term Fix
+After restoring service, perform a postmortem/root cause analysis:
+Was it infra drift, bad commit, flaky test, misconfigured pipeline stage?
+Implement permanent fixes (e.g., test stabilization, infra automation, better pipeline monitoring).
+
+✅ Example Answer (short & sharp for interviews):
+"If multiple pipelines fail under tight deadlines, I first triage based on business impact—production or release-blocking failures take top priority. I quickly check logs, recent changes, and known issues to identify the root cause. Where possible, I apply temporary workarounds like reverting a commit or rerunning a job to unblock critical pipelines, while communicating status to stakeholders. At the same time, I delegate or log less critical failures for follow-up. Once stability is restored, I focus on root cause analysis and preventive measures to ensure it doesn’t recur."
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
