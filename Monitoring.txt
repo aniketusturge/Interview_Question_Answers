@@ -158,33 +158,21 @@ Which monitoring/logging tools have you implemented
 I’ve worked with a combination of monitoring and logging tools, depending on the project requirements.
 
 🔹 Monitoring Tools I’ve implemented:
-
 Prometheus + Grafana → for Kubernetes and microservices monitoring (metrics like CPU, memory, pod restarts, custom app metrics). Grafana dashboards provided visibility and alerting.
-
 CloudWatch (AWS) → for infrastructure and application metrics, alarms, and centralized dashboards.
-
 New Relic / AppDynamics → for APM (Application Performance Monitoring), especially in microservices to trace slow transactions, DB queries, and API latency.
-
 Nagios / Zabbix (legacy systems) → for server and network health checks.
 
 🔹 Logging Tools I’ve implemented:
-
 ELK / OpenSearch Stack (Elasticsearch, Logstash/Fluentd, Kibana) → centralized log management across applications, search & visualization, alerting on error spikes.
-
 EFK (Elasticsearch, Fluentd, Kibana) for Kubernetes cluster logging.
-
 Splunk → enterprise-grade log analysis and alerting for large-scale systems.
-
 Cloud-native logging → AWS CloudWatch Logs, GCP Stackdriver for managed services.
 
 🔹 Why & How:
-
 I set up dashboards for real-time observability,
-
 Configured alerts to Slack/Teams/PagerDuty so incidents were caught early,
-
 Integrated log-based metrics (e.g., error rates from logs feeding into alerts).
-
 This combination gave both proactive monitoring (metrics, alerts) and reactive troubleshooting (logs, traces). It helped reduce MTTR (Mean Time to Recovery) significantly during incidents."
 
 ------------------------------
@@ -192,43 +180,29 @@ This combination gave both proactive monitoring (metrics, alerts) and reactive t
 Describe your approach to incident response when monitoring alerts are triggered.
 
 1. Detection & Acknowledgment:
-
-Alerts come via PagerDuty/Slack/Email from Prometheus, CloudWatch, or ELK.
-
-I immediately acknowledge the alert to prevent noise and make sure the team knows I’m handling it.
+-Alerts come via PagerDuty/Slack/Email from Prometheus, CloudWatch, or ELK.
+-I immediately acknowledge the alert to prevent noise and make sure the team knows I’m handling it.
 
 2. Triage & Impact Assessment:
-
-I check logs, dashboards, and metrics to confirm if it’s a real incident (not a false alarm).
-
-Assess the blast radius — which services, users, or environments are impacted.
-
-Prioritize based on severity (e.g., production outage vs. a single pod restart).
+-I check logs, dashboards, and metrics to confirm if it’s a real incident (not a false alarm).
+-Assess the blast radius — which services, users, or environments are impacted.
+-Prioritize based on severity (e.g., production outage vs. a single pod restart).
 
 3. Containment & Mitigation:
-
-If critical, apply a quick fix/workaround (e.g., scaling pods, restarting services, rolling back a bad deployment).
-
-If it’s infrastructure-related (e.g., high CPU, disk full), I’ll scale resources or clean up logs temporarily while investigating root cause.
+-If critical, apply a quick fix/workaround (e.g., scaling pods, restarting services, rolling back a bad deployment).
+-If it’s infrastructure-related (e.g., high CPU, disk full), I’ll scale resources or clean up logs temporarily while investigating root cause.
 
 4. Communication:
-
-Keep stakeholders updated (team, product owners, possibly customers if needed).
-
-Provide ETA, status updates, and workaround steps.
+-Keep stakeholders updated (team, product owners, possibly customers if needed).
+-Provide ETA, status updates, and workaround steps.
 
 5. Root Cause Analysis (RCA) & Postmortem:
-
-After stabilizing, do a deep dive into logs, metrics, traces.
-
-Identify root cause (bad release, memory leak, misconfigured alert, infra bottleneck).
-
-Document the incident in a postmortem report with action items (e.g., fix bug, add runbooks, improve alert thresholds, automate remediation).
-
-Share lessons learned with the team to avoid recurrence.
+-After stabilizing, do a deep dive into logs, metrics, traces.
+-Identify root cause (bad release, memory leak, misconfigured alert, infra bottleneck).
+-Document the incident in a postmortem report with action items (e.g., fix bug, add runbooks, improve alert thresholds, automate remediation).
+-Share lessons learned with the team to avoid recurrence.
 
 Result:
-
 This approach reduces MTTR (Mean Time to Recovery) and helps build long-term reliability improvements."
 
 👉 Pro tip for interviews: End with something measurable, like:
@@ -237,3 +211,49 @@ This approach reduces MTTR (Mean Time to Recovery) and helps build long-term rel
 -----------------------------
 
 
+"How do you monitor HTTP status codes (e.g., 503, 504) for your applications?"
+
+"To monitor HTTP status codes like 503 and 504, I use a combination of logging, metrics, and alerting tools depending on the tech stack.
+-At the application level, I ensure that all HTTP responses are logged, including status codes. These logs are sent to a centralized logging system like CloudWatch Logs, ELK, or Datadog. I create filters or queries to detect spikes in 5XX status codes and set alerts if they exceed a certain threshold.
+-At the infrastructure level, if I’m using AWS services like API Gateway or Load Balancers, I rely on CloudWatch metrics such as 5XXError, HTTPCode_ELB_5XX, or IntegrationLatency. I set up CloudWatch alarms to notify the team when these metrics go beyond normal limits — for example, if 503 errors spike over a 5-minute period.
+-In other environments, I use tools like New Relic or Prometheus with Grafana to collect and visualize HTTP status metrics. With New Relic APM, I monitor response code distribution and use alert policies to trigger notifications if 503s or 504s rise above expected levels.
+
+By combining these methods, I’m able to quickly detect and respond to availability issues, trace them to their root cause, and minimize downtime."
+
+-------------------------
+
+What is your process for acknowledging and responding to alerts?
+
+"My process for acknowledging and responding to alerts is structured to ensure quick action and effective resolution. Here's how I typically handle it:"
+
+🔔 1. Acknowledge Immediately
+-As soon as an alert is triggered, I acknowledge it in the alerting system (like PagerDuty, Opsgenie, or email/slack integrations) to signal that someone is taking ownership.
+-This helps avoid duplication of effort and keeps the team informed.
+
+📊 2. Assess the Severity
+-I review the alert details — such as the type, affected resource, metric thresholds, and historical context.
+-I prioritize based on severity: whether it’s a critical production issue (e.g., high error rate or 503s) or a non-urgent performance anomaly.
+
+🕵️ 3. Investigate the Root Cause
+-I check logs, metrics, and dashboards (via CloudWatch, New Relic, Datadog, etc.) to identify the underlying issue.
+-If it’s application-specific, I might correlate logs with request traces or status codes.
+-If infrastructure-related, I check resource utilization, network health, or dependencies.
+
+🚑 4. Take Action
+-Depending on the issue, I either:
+-Restart services or scale infrastructure,
+-Roll back recent deployments,
+-Apply hotfixes,
+-Or escalate to the appropriate team if it requires deeper domain knowledge.
+
+📣 5. Communicate Clearly
+-I keep stakeholders updated through Slack or incident channels, especially for critical issues.
+-If there’s customer impact, I work with support/management for timely communication.
+
+📝 6. Post-Mortem & Improvements
+-After resolving the alert, I document the incident and contribute to a post-mortem if required.
+-If the alert was noisy or unclear, I refine the alerting thresholds or improve runbooks/playbooks for future incidents.
+
+"This approach ensures alerts are handled quickly, efficiently, and with a continuous focus on learning and improving system resilience."
+
+------------------------------------------

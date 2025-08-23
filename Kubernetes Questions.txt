@@ -11,6 +11,7 @@ A container orchestrator (like Kubernetes, Docker Swarm, or Amazon ECS) coordina
 3.Load Balancing: Distributes traffic across containers to ensure high availability.
 4.Self-Healing: Automatically restarts failed containers, replaces unresponsive ones, and maintains the desired state.
 5.Service Discovery: Assigns services DNS names and abstracts internal IPs.
+
 6.Rolling Updates & Rollbacks: Enables zero-downtime deployments with built-in rollback support.
 7.Resource Management: Optimizes CPU and memory usage across containers.
 
@@ -491,6 +492,7 @@ helm upgrade my-app ./my-app-chart -f values-prod.yaml
 
 To test changes before applying:
 helm template ./my-app-chart -f values-dev.yaml
+
 🔄 3. Managing Environments with values.yaml
 Each environment has its own override file:
 
@@ -508,6 +510,7 @@ image:
 env:
   - name: ENV
     value: "dev"
+
 🧩 4. CI/CD Integration (e.g., Jenkins, GitHub Actions)
 In CI/CD:
 I automate Helm deployments using:
@@ -528,7 +531,7 @@ So, I use Helm for deploying apps in Kubernetes by creating reusable charts, man
 
 ---------------------------------------------------------
 
-Q19)What’s the difference between StatefulSet and Deployment in Kubernetes?
+Q. What’s the difference between StatefulSet and Deployment in Kubernetes?
 The main difference between a StatefulSet and a Deployment in Kubernetes lies in how they manage pod identity, storage, and ordering. I choose between them based on whether the app is stateless or stateful.
 
 📦 1. Deployment – For Stateless Applications
@@ -609,7 +612,7 @@ So, I use Deployments for scalable, stateless services, and StatefulSets when th
 ---------------------------------------------------------
 
 
-Q20)How do you store and access persistent data inside a Kubernetes pod?
+Q. How do you store and access persistent data inside a Kubernetes pod?
 To store and access persistent data inside a Kubernetes pod, I use Persistent Volumes (PVs) and Persistent Volume Claims (PVCs). This decouples storage from the pod lifecycle, so data isn't lost when the pod restarts or gets rescheduled.
 
 📦 1. Why Not Use EmptyDir or Container Filesystem?

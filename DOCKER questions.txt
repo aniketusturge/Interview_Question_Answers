@@ -171,3 +171,57 @@ Summary:
 Docker Compose is a powerful tool for orchestrating multi-container setups, especially useful in local dev and CI pipelines. It improves consistency, reduces setup friction, and lets you focus on development instead of managing infrastructure.
 
 ---------------------------------------------------------------------------------
+
+what are dangling docker images and how to clean them up ?
+
+🔹 What are Dangling Docker Images?
+-A dangling image is an image without a tag (not associated with any repository).
+-Typically created when you rebuild an image and the old layers are left untagged.
+-They look like this when you run docker images:
+
+<none>        <none>        4f5e8f9d0b12   3 days ago    120MB
+
+-These are not used by any container but still consume disk space.
+
+🔹 How to List Dangling Images
+docker images -f "dangling=true"
+
+🔹 How to Remove Dangling Images
+1.Remove only dangling images
+
+docker image prune
+
+-Prompts for confirmation.
+-Removes only dangling images (<none>).
+
+2.Force remove without prompt
+
+docker image prune -f
+
+3.Remove dangling + unused images (not used by any container)
+
+docker image prune -a
+
+⚠️ Careful → this will remove all images not currently used by a container.
+
+✅ Interview-ready summary:
+
+“Dangling images are untagged images (<none>) that remain when rebuilding or updating images. They waste disk space since they aren’t referenced by any container. You can clean them up using docker image prune or docker image prune -a.”
+
+-----------------------------------
+
+
+To view its real-time resource usage CPU, memory, network, I.O. What doekcr command would you use?
+
+“I’d use the docker stats command to view real-time CPU, memory, network, and I/O usage of running containers.”
+1.View specific containers:
+docker stats <container_id_or_name>
+
+2.Show all running containers:
+docker stats
+
+3.Use --no-stream to get a single snapshot instead of continuous updates:
+docker stats --no-stream
+------------------------------------
+
+
