@@ -1,0 +1,79 @@
+1) What is the architecture of kubernetes
+2) What does control manager, etcd, scheduler, API server do
+3) What is a manifest file and what are the components of it
+4) What is node affinity, pod afiinity , taint toleration
+5) What is node port, cluster ip
+6) What is persitant volumes and why we use it
+7) Describe what is pod and what is pod lifecycle
+8) What are the components on master and worked node
+9) What is ingress controller
+10) What are types of services in kuberntes
+
+
+
+One of your nodes is NotReady for more than 10 minutes. How would you troubleshoot and fix it?
+
+You notice pods are stuck in Pending even though there are available nodes. What steps do you take?
+
+CPU usage on a node is consistently high, but HPA isn’t scaling pods. How do you debug?
+
+How do you drain a node for maintenance without causing downtime in production?
+
+Pod & Deployment Issues
+
+
+You deployed a new version of an application, but traffic is still routed to old pods. What might be wrong?
+
+A Deployment keeps creating pods, but they get OOMKilled. How do you troubleshoot?
+
+If a pod is consuming too much memory/CPU and affecting others, how would you enforce limits?
+
+Networking & Services
+
+A pod cannot reach an external service (like a DB or API). How do you debug connectivity?
+
+A Service of type ClusterIP isn’t reachable from another namespace. How do you fix it?
+
+You exposed a Service with LoadBalancer, but it’s not accessible from the internet. What do you check?
+
+How do you debug DNS resolution failures inside a pod?
+
+Storage & Data
+
+A pod using a PVC is stuck in Pending because PV is not bound. How do you resolve it?
+
+Your PVC is full. How do you expand storage without downtime?
+
+What happens if a StatefulSet pod with a PVC gets deleted? How do you recover data?
+
+Scaling & Performance
+
+HPA scales pods up, but performance is still poor. What else would you check?
+
+VPA suggests scaling down pods, but workloads crash after applying. How do you handle it?
+
+How would you autoscale not just pods, but also nodes in the cluster?
+
+Security & RBAC
+
+A developer reports they cannot access a namespace they should have access to. How do you debug RBAC issues?
+
+How do you prevent containers from running as root in the cluster?
+
+How would you secure secrets in Kubernetes, beyond plain Secrets?
+
+Monitoring & Troubleshooting
+
+Your application response time is very high, but CPU/memory look fine. How do you debug in Kubernetes?
+
+How do you monitor and alert on pod restarts?
+
+How do you collect logs from all pods and centralize them for analysis?
+
+Disaster Recovery & Upgrades
+
+How would you recover a cluster if the etcd database gets corrupted?
+
+You upgraded Kubernetes from v1.26 to v1.28 and some workloads broke. How do you roll back safely?
+
+How do you handle a situation where an entire Availability Zone goes down in an EKS/GKE/AKS cluster?

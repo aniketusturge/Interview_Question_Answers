@@ -86,9 +86,7 @@ Both CMD and ENTRYPOINT define what command runs inside a Docker container, but 
 -It can be overridden at runtime when using docker run.
 
 Example:
-
 dockerfile
-
 CMD ["nginx", "-g", "daemon off;"]
 bash
 docker run myimage nginx -g "daemon on;"
@@ -100,7 +98,6 @@ docker run myimage nginx -g "daemon on;"
 -Good for creating containers with a fixed behavior (e.g., CLI tools).
 
 Example:
-
 dockerfile
 ENTRYPOINT ["nginx"]
 CMD ["-g", "daemon off;"]
@@ -223,5 +220,294 @@ docker stats
 3.Use --no-stream to get a single snapshot instead of continuous updates:
 docker stats --no-stream
 ------------------------------------
+
+how to delete all docker images used and unsed 
+
+🔹 Delete all Docker images (used + unused)
+⚠️ Important: This will remove every image from your system. Make sure no running containers depend on them.
+
+Option 1: One-liner
+docker rmi -f $(docker images -aq)
+
+-docker images -aq → lists all image IDs.
+-docker rmi -f → force removes them (ignores dependencies).
+
+Option 2: Using Docker system prune
+docker system prune -a
+
+-Removes all unused containers, networks, and images (both dangling and unreferenced).
+-Prompts before deleting → use -f to skip confirmation.
+
+docker system prune -a -f
+
+Difference:
+-docker rmi -f $(docker images -aq) → removes all images, even if in use (containers may break).
+-docker system prune -a → removes only unused images (keeps ones attached to containers).
+
+✅ Interview-ready answer:
+“To delete all Docker images, I’d use docker rmi -f $(docker images -aq). If I want to clean up only unused ones safely, I’d use docker system prune -a. The prune command also cleans unused containers and networks, making it a safer option in production.”
+
+------------------------------------
+
+how to stop all docker containers
+
+🔹 Stop All Running Docker Containers
+Option 1: One-liner (most common)
+docker stop $(docker ps -q)
+
+-docker ps -q → lists all running container IDs.
+-docker stop → stops them gracefully.
+
+Option 2: Force stop all containers
+docker kill $(docker ps -q)
+
+Immediately kills containers (doesn’t allow graceful shutdown).
+
+Option 3: Using Docker Compose (if using docker-compose)
+docker compose down
+
+Stops and removes all containers defined in a docker-compose.yml.
+
+✅ Interview-ready answer:
+“To stop all running containers, I’d use docker stop $(docker ps -q). If I need to force stop them, I’d use docker kill $(docker ps -q). With Docker Compose projects, I’d use docker compose down.”
+
+------------------------------------
+🔹 What are Public Ports in Docker?
+
+In Docker, a container runs in its own isolated network namespace. By default:
+-Services inside a container (like Nginx on port 80) are not accessible from outside.
+-To make them accessible, you need to publish (map) container ports to the host machine’s ports.
+-When you publish a container port to the host’s public network interface (0.0.0.0), it becomes a public port — accessible from outside the host (e.g., internet).
+
+🔹 Syntax
+docker run -d -p <host_port>:<container_port> <image>
+
+-p 8080:80 → maps host port 8080 → container port 80.
+
+If the host has a public IP, then <host_public_ip>:8080 is reachable from anywhere.
+
+🔹 Examples
+
+Run Nginx and make it public on port 80:
+
+docker run -d -p 80:80 nginx
+
+
+Accessible at http://<host-public-ip>:80
+
+Run an app on custom port:
+
+docker run -d -p 5000:3000 myapp
+
+Host port 5000 is public, container app listens on port 3000.
+
+🔹 Security Considerations
+
+⚠️ Exposing public ports can be risky!
+
+Anyone with the host’s IP can access the service.
+
+Best practices:
+-Restrict ports with firewall/security groups.
+-Use private networking (e.g., Docker bridge or overlay) for internal services.
+-Use reverse proxies (like Nginx, Traefik) to control access.
+
+✅ Interview-ready answer:
+
+“Public ports in Docker are container ports that are mapped to the host machine’s network interface, making them accessible externally. For example, docker run -p 80:80 nginx exposes the container’s port 80 to the host’s public port 80, allowing internet users to access it. While this is useful for web apps, it should be secured using firewalls, security groups, or reverse proxies.”
+
+------------------------------------
+
+diffenence between expose and publish
+
+🔹 EXPOSE in Dockerfile
+
+EXPOSE <port> is a metadata instruction in the Dockerfile.
+
+It documents that the containerized app listens on a given port.
+
+Example:
+FROM nginx
+EXPOSE 80
+
+This does not make the port accessible outside the container.
+Just tells Docker (and humans) “hey, this app listens on port 80.”
+
+🔹 Publishing (Public Port)
+Done with -p or --publish in docker run.
+Actually maps a container port to a host port (host’s network interface).
+
+Example:
+docker run -d -p 8080:80 nginx
+
+-Maps container port 80 → host port 8080.
+-Accessible publicly at http://<host-ip>:8080.
+
+🔹 Key Difference
+Feature		EXPOSE (Dockerfile)					Publish (-p) (docker run)
+Purpose		Documentation / metadata				Actual networking (port binding)
+Accessibility	Internal (other containers on same network can see)	External (reachable from host or internet)
+Effect		Doesn’t open port					Opens port on host machine
+Example	EXPOSE 80 in Dockerfile	docker run -p 8080:80
+
+✅ Interview-ready one-liner:
+“EXPOSE is just documentation in the Dockerfile that a container listens on a port, but it doesn’t actually open it. To make a port accessible externally, you must publish it with -p when running the container.”
+
+------------------------------------
+
+how to check all containers
+
+🔹 List Running Containers
+docker ps
+Shows only currently running containers.
+
+🔹 List All Containers (running + stopped)
+docker ps -a
+-a (all) flag shows exited, created, paused, dead containers too.
+
+🔹 Show Only Container IDs
+docker ps -aq
+Useful for scripting (like stopping/removing all containers).
+
+------------------------------------
+
+Dockerfile for a Node.js-based application.
+
+
+# Use official Node.js LTS image as base
+FROM node:18-alpine
+
+# Set working directory inside container
+WORKDIR /usr/src/app
+
+# Copy package.json and package-lock.json first (better caching)
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install --production
+
+# Copy application source code
+COPY . .
+
+# Expose application port (document purpose)
+EXPOSE 3000
+
+# Start the Node.js app
+CMD ["npm", "start"]
+
+🔹 Explanation
+FROM node:18-alpine → Uses a lightweight Node.js base image.
+WORKDIR → Sets /usr/src/app as the working directory.
+COPY package.json ./* → Copies dependency files first (leverages Docker build cache).
+RUN npm install --production → Installs only production dependencies.
+COPY . . → Copies rest of the application code.
+EXPOSE 3000 → Documents that the app listens on port 3000.
+CMD ["npm", "start"] → Defines the default command to run the app.
+------------------------------------
+
+🔹 Multi-Stage Node.js Dockerfile
+# ---------- Stage 1: Build Stage ----------
+FROM node:18-alpine AS builder
+
+# Set working directory
+WORKDIR /usr/src/app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev)
+RUN npm install
+
+# Copy rest of the application source
+COPY . .
+
+# Build the app (for React/Next.js or TS apps; skip if plain Node.js)
+RUN npm run build
+
+
+# ---------- Stage 2: Production Stage ----------
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /usr/src/app
+
+# Copy only package.json again
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm install --production
+
+# Copy build artifacts and code from builder stage
+COPY --from=builder /usr/src/app ./
+
+# Use non-root user for security
+USER node
+
+# Expose app port
+EXPOSE 3000
+
+# Start the application
+CMD ["npm", "start"]
+
+🔹 Why Multi-Stage?
+Stage 1 (builder): Includes dev dependencies, compiles/builds code (e.g., TypeScript → JS, React build).
+Stage 2 (production): Lightweight, contains only runtime + production dependencies.
+Ensures smaller image size and better security.
+
+🔹 Build & Run
+# Build
+docker build -t my-node-app .
+
+# Run
+docker run -d -p 3000:3000 my-node-app
+
+
+✅ Interview-ready talking points:
+“I use multi-stage builds to separate build dependencies from runtime, making the final image smaller and more secure.”
+“I use USER node to avoid running containers as root in production.”
+“I install only production dependencies in the final stage (npm install --production).”
+“I leverage Docker’s caching by copying package*.json first.”
+------------------------------------
+
+how to login to a container
+
+Attach to a Container’s Shell
+
+docker exec -it <container_id_or_name> /bin/bash
+-i = interactive
+-t = allocate a TTY
+/bin/bash = start a bash shell
+
+👉 If the image doesn’t have bash (like Alpine), use sh:
+
+docker exec -it <container_id_or_name> sh
+
+“To log into a running container, I usually run docker exec -it <container_id> /bin/bash. If bash is not available (like in Alpine), I use sh. docker attach can also connect me, but it attaches to the main process, so I prefer exec for a shell.”
+------------------------------------
+
+
+
+
+
+------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

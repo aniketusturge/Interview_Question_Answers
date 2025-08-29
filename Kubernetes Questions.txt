@@ -130,7 +130,7 @@ Ensures manifests follow Kubernetes schemas and your org’s policy rules.
 How do you schedule a k8's deployment to run on a specific node?
 You can schedule a Kubernetes deployment to run on a specific node using node selectors, node affinity, or taints & tolerations — depending on how strict you want the scheduling to be.
 
-1. Node Selector (Simple & Direct)
+1.  or (Simple & Direct)
 Add a label to the node:
 
 bash
@@ -1454,72 +1454,1047 @@ One of your Kubernetes pods is stuck in CrashLoopBackOff. What diagnostic steps 
 1. Check Pod Status & Events
 
 Run:
-
 kubectl describe pod <pod-name>
 
-
-Look at Events section for image pull errors, config errors, OOMKilled, etc.
-
-Check if restart count is increasing (confirms crash loop).
+-Look at Events section for image pull errors, config errors, OOMKilled, etc.
+-Check if restart count is increasing (confirms crash loop).
 
 2. Check Logs
-
 Get the logs of the failing container:
 
 kubectl logs <pod-name> --previous
-
-
 --previous shows logs from the last crashed attempt.
 
 Look for errors like missing configs, failed DB connections, unhandled exceptions.
 
 3. Inspect Resource Limits
-
 Sometimes the pod is OOMKilled because memory limits are too low.
-
 Check in kubectl describe pod → Last State: Terminated (OOMKilled).
-
 Adjust CPU/memory requests and limits if needed.
 
 4. Validate Config & Secrets
-
 Ensure required ConfigMaps and Secrets are mounted and environment variables are available.
-
 Check for typos or missing values.
 
 5. Check Health Probes
-
 Misconfigured liveness/readiness probes can cause repeated restarts.
-
 Example: probe hitting the wrong port/path.
-
 Validate probe configs in the Deployment YAML.
 
 6. Check Dependencies
-
 If the pod depends on external services (DB, APIs, message queues), verify connectivity.
-
 Run a temporary debug pod:
-
 kubectl run tmp-shell --rm -i --tty --image=alpine -- sh
-
-
 to test network/DNS resolution.
 
 7. Check Image & Command
-
 Make sure the container image has the correct entrypoint/command.
-
 Sometimes CrashLoopBackOff happens if the app exits immediately (wrong CMD).
 
 8. Rollback / Redeploy
-
 If the issue is tied to a recent deployment, roll back to the last working version while troubleshooting.
 
 ✅ Example to tell in interview:
 "For example, I once had a pod in CrashLoopBackOff due to an invalid database password secret. I used kubectl logs --previous to see the connection error, verified the secret in Kubernetes, fixed it, and redeployed. To prevent this, we added pre-deployment checks for required secrets."
 
 -------------------------------------------
+One of your nodes is NotReady for more than 10 minutes. How would you troubleshoot and fix it?
+
+If a node shows NotReady for more than 10 minutes, I’d start by describing the node with kubectl describe node <node-name> to check conditions like memory pressure, disk pressure, or network issues.
+
+Then I’d SSH into the node and check the kubelet service (systemctl status kubelet, journalctl -u kubelet) to see if it’s running properly. I’d also check if the container runtime (Docker/Containerd) is healthy, and verify networking (CNI plugin logs) to ensure the node can talk to the API server.
+
+If the node is truly unhealthy, I’d cordon and drain it (kubectl drain <node>) so workloads move to healthy nodes, and then either restart services or replace the node if needed.
+
+For prevention, I’d set up monitoring and alerts on node conditions, and if it’s a cloud-managed cluster, I’d enable the cluster autoscaler so unhealthy nodes are replaced automatically.”
+-------------------------------------------
+
+one of your node is not ready  for 10 minutes troubleshootin ?
+
+🔹 Troubleshooting Steps
+1. Check node status & conditions
+kubectl get nodes
+kubectl describe node <node-name>
+ -Look for conditions: Ready, DiskPressure, MemoryPressure, NetworkUnavailable.
+ - If status = NotReady, kubelet might not be heartbeating to API server.
+
+2. Check if pods are affected
+kubectl get pods -o wide --all-namespaces | grep <node-name>
+
+Confirm if workloads are stuck or rescheduled to other nodes.
+
+3. SSH into the node
+Check kubelet and container runtime:
+
+systemctl status kubelet -l
+journalctl -u kubelet -f
+systemctl status docker   # or containerd
+
+Restart if down:
+systemctl restart kubelet
+systemctl restart docker   # or containerd
+
+4. Check node resources
+Disk full?
+df -h
+
+Memory/CPU pressure?
+top
+free -m
+
+Logs filling up?
+du -sh /var/log/*
+
+5. Check CNI / Networking
+If node is NotReady due to network:
+
+systemctl status kubelet
+systemctl status kube-proxy
+
+Validate that CNI pods (calico, flannel, weave, cilium) are running:
+
+kubectl get pods -n kube-system -o wide
+
+6. Check API server connectivity
+From the node:
+curl -k https://<api-server>:6443/healthz
+
+If API server unreachable → node isolated (network/firewall issue).
+
+7. Check certificates
+Sometimes node kubelet certs expire → re-register needed:
+ls -l /var/lib/kubelet/pki/
+Rotate certs if expired:
+kubeadm certs renew all
+systemctl restart kubelet
+
+🔹 Possible Causes & Fixes
+Cause							Fix
+Kubelet stopped					Restart kubelet service
+Docker/containerd crashed			Restart container runtime
+Disk full (/var/lib/kubelet or /var/log)	Clean old logs, set log rotation
+Network plugin crashed (Calico/Flannel)		Restart CNI pods
+Node lost connectivity to API server		Check firewall, routes, security groups
+Cert expired					Renew kubelet certs, re-join node
+High CPU/memory pressure			Increase resources or reschedule workloads
+
+✅ Interview-style Answer:
+"If a node is NotReady for more than 10 minutes, my first step is to check node conditions using kubectl describe node. Then I SSH into the node to check kubelet and container runtime logs. Common issues I’ve seen are kubelet crash, disk full under /var/lib/kubelet, or network plugin failures. For example, once in production, a node was NotReady due to /var/log filling up, which caused disk pressure. I cleared logs, configured log rotation, restarted kubelet, and the node recovered. I also monitor these conditions in Grafana to get alerts before nodes go down."
+-------------------------------------------
+
+How do you roll back or fix this without affecting production?
+
+Scenario A: a node is NotReady — fix without user impact
+Goal: keep the app serving while we repair the node.
+
+1.Protect traffic first
+Cordon the bad node (no new pods scheduled):
+kubectl cordon <node>
+Check replicas/health of affected workloads. If needed, temporarily scale up other replicas to keep capacity:
+kubectl get deploy -A
+kubectl scale deploy/<name> -n <ns> --replicas=<N+>
+
+2.Evict safely
+Respect PodDisruptionBudget (PDB) while draining to avoid taking too many replicas down:
+
+kubectl get pdb -A
+kubectl drain <node> --ignore-daemonsets --delete-emptydir-data
+
+If PDB blocks drain (good!), increase replicas or temporarily relax the PDB, then drain.
+
+3.Repair off-line
+SSH to node; fix root cause (kubelet/containerd down, disk pressure, CNI, cert expiry).
+
+Typical quick wins:
+# check
+systemctl status kubelet containerd || docker
+df -h; du -sh /var/log/* /var/lib/kubelet/*
+# remediate
+systemctl restart containerd kubelet
+# if logs/disk:
+journalctl --vacuum-time=7d
+# if CNI pods crashed, restart daemonset or node
+
+4.Return node to service
+Verify Ready:
+kubectl get nodes
+
+Uncordon:
+kubectl uncordon <node>
+
+Watch pods reschedule and SLOs/metrics (latency/error rate).
+Net effect: live traffic stays on healthy nodes; you drain + fix the bad node without customer impact.
+
+Scenario B: a bad application rollout — roll back instantly, no downtime
+
+Immediate rollback (Kubernetes Deployment)
+Inspect rollout:
+-kubectl rollout status deploy/<app> -n <ns>
+-kubectl rollout history deploy/<app> -n <ns>
+
+Roll back to last good revision:
+-kubectl rollout undo deploy/<app> -n <ns>
+# or to a specific revision
+-kubectl rollout undo deploy/<app> --to-revision=<rev> -n <ns>
+
+Watch readiness gates before declaring success:
+kubectl get pods -w -n <ns>
+
+If you use image pinning
+Set image back to previous, record a new revision:
+kubectl set image deploy/<app> <container>=<repo>:<previous-tag> -n <ns> --record
+
+Zero-downtime rollout settings (prevent future impact)
+Ensure Deployment strategy is safe:
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+Health checks tuned:
+readinessProbe: { httpGet: { path: /healthz, port: 8080 }, initialDelaySeconds: 10, periodSeconds: 5, failureThreshold: 3 }
+livenessProbe:  { httpGet: { path: /livez,   port: 8080 }, initialDelaySeconds: 30 }
+
+Keep PDB so rollouts/drains don’t drop too many replicas:
+
+minAvailable: 80%  # or maxUnavailable: 1
+
+Canary/Blue-Green (preferred for risky changes)
+Canary: deploy v2 with 5–10% traffic (weighted Ingress/Service mesh). Promote or roll back instantly by shifting weights.
+Blue-Green: stand up blue (new), keep green (prod). Flip the Service/Ingress only after health passes. Revert is a pointer flip.
+
+CI/CD rollback lever
+-Keep immutable artifacts (versioned images). Revert the pipeline to last green build and redeploy.
+-If the change was config only, use ConfigMap/Secret versioning and roll back the reference.
+
+Scenario C: Terraform/infra change broke something — revert without outage
+Don’t patch by hand (avoids drift).
+Reapply last good state/artifacts:
+Revert Git to last good commit and:
+
+terraform plan -refresh-only
+terraform apply
+
+If blast radius is big, targeted apply:
+-terraform apply -target=module.app_alb -target=aws_autoscaling_group.app
+
+Use blue/green infra where possible (new ASG/Launch Template), cut traffic via ALB/NLB, then destroy the old stack after validation.
+Communication & Guardrails (what interviewers love to hear)
+-SLO-driven decision: roll back if error rate/latency breaches for N minutes.
+-Feature flags: disable the risky code path without redeploy.
+-Runbook: have codified steps (cordon/drain/rollback/validate).
+-Observability first: check dashboards (latency, 5xx, saturation), logs, and events before/after action.
+-Post-incident: create a fix-forward PR with tests, tighten probes/PDB/strategy, and add pre-deploy checks.
+
+
+“If a node is unhealthy, I cordon & drain to protect traffic, fix it off-path, then uncordon. If a release is bad, I use kubectl rollout undo (or flip canary/blue-green) with maxUnavailable=0 and solid probes/PDBs so users aren’t impacted. For infra, I revert IaC to last good commit and apply safely. I always validate with metrics before and after.”
+
+
+-------------------------------------------
+Q: How do you troubleshoot a PersistentVolumeClaim (PVC) stuck in Pending state in Kubernetes?
+When a PVC is in Pending state, it usually means Kubernetes couldn’t bind it to a suitable PersistentVolume (PV) or dynamically provision it. I would troubleshoot step by step:
+
+🔎 Step 1: Check PVC Status
+kubectl get pvc
+kubectl describe pvc <pvc-name>
+Look at Events section for errors like “no persistent volumes available for this claim” or “waiting for a volume to be provisioned”.
+
+🔎 Step 2: Verify StorageClass
+If the PVC specifies a storageClassName, check whether that StorageClass exists:
+kubectl get sc
+If storageClassName is empty and default storage class is not set, the claim won’t be provisioned.
+
+🔎 Step 3: Check PV Availability (if using Static Provisioning)
+kubectl get pv
+
+Ensure there is a PV:
+ -In Available state
+ -With storageClassName matching the PVC
+ -With equal or larger storage size
+ -With compatible access modes (e.g., ReadWriteOnce, ReadWriteMany).
+
+🔎 Step 4: Check Dynamic Provisioning
+If using EBS, EFS, NFS, Ceph, etc., check if the provisioner is working:
+
+kubectl describe sc <sc-name>
+
+Look for provisioner field (e.g., kubernetes.io/aws-ebs, efs.csi.aws.com).
+
+Ensure the CSI driver or in-tree plugin is installed and running:
+kubectl get pods -n kube-system | grep csi
+
+🔎 Step 5: Node-Level Checks
+If using cloud volumes like AWS EBS or GCP PD:
+-Ensure the worker nodes have correct IAM roles/permissions to create volumes.
+-Check if the requested zone/region in the PVC matches the node availability zone.
+
+🔎 Step 6: Common Fixes
+-If storageClass missing → assign correct one or set default:
+
+kubectl patch storageclass <sc-name> -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+
+-If no PV available → create a matching PV manually.
+-If CSI driver issue → restart provisioner pods and check logs:
+ kubectl logs <provisioner-pod> -n kube-system
+
+
+✅ In short:
+I would start from PVC → StorageClass → PV availability → CSI driver health → Node/Cloud IAM configuration. Once identified, I can either bind PVC to an existing PV, fix StorageClass, or redeploy the CSI driver.
+
+
+-------------------------------------------
+
+Q: CPU usage on a node is consistently high, but HPA isn’t scaling pods. How do you debug?
+
+If the node CPU is high but the Horizontal Pod Autoscaler (HPA) is not scaling pods, it usually means HPA is not seeing the metrics correctly or is misconfigured. I would troubleshoot in layers:
+
+🔎 Step 1: Verify HPA status
+kubectl get hpa
+kubectl describe hpa <hpa-name>
+Check Current CPU Utilization vs Target CPU Utilization.
+If Current is missing or always 0%, metrics are not being reported.
+
+🔎 Step 2: Check Metrics Server
+HPA relies on metrics-server for CPU/Memory metrics.
+Verify metrics-server is running:
+kubectl get pods -n kube-system | grep metrics-server
+
+Check logs for errors:
+kubectl logs <metrics-server-pod> -n kube-system
+
+If metrics-server can’t reach kubelets (often due to insecure TLS or RBAC), HPA won’t work.
+
+🔎 Step 3: Validate Pod Metrics
+kubectl top pods
+kubectl top nodes
+
+-If kubectl top works → metrics-server is fine.
+-If it errors out → fix metrics-server connectivity.
+
+🔎 Step 4: Check Resource Requests/Limits
+
+HPA scales based on CPU requests, not actual usage.
+Example: If a pod requests 500m CPU and uses 800m, HPA sees it as 160% usage.
+If requests are missing (no CPU requests defined), HPA may not trigger scaling.
+
+Check with:
+kubectl describe pod <pod-name> | grep -A3 "Limits"
+
+🔎 Step 5: HPA Configuration
+Ensure HPA is targeting the correct deployment:
+
+kubectl describe hpa <hpa-name>
+Verify min/max replicas are reasonable.
+Ensure correct metrics (CPU, memory, custom metrics) are defined.
+
+🔎 Step 6: Node vs Pod Issue
+High node CPU ≠ High pod CPU utilization.
+Sometimes one system pod (like kube-proxy or logging agent) is hogging CPU, not the app pods.
+That would not trigger HPA because HPA only reacts to application pod CPU usage, not node CPU.
+
+Check with:
+kubectl top pod --all-namespaces | sort -k3 -nr
+
+to see which pod is consuming CPU.
+
+🔎 Step 7: Fixes
+If metrics-server issue → fix TLS flags (--kubelet-insecure-tls), RBAC, or restart it.
+If missing CPU requests → set requests/limits in Deployment spec.
+If wrong target resource → update HPA target.
+If node pressure only → use Cluster Autoscaler to add nodes, not HPA.
+
+✅ Summary Answer:
+“I would first check the HPA metrics with kubectl describe hpa and kubectl top to confirm if CPU utilization is being reported. If not, I’d troubleshoot metrics-server. If metrics exist but scaling isn’t happening, I’d check if CPU requests are set correctly in the Deployment, since HPA works on requests not raw usage. Finally, I’d confirm that the high node CPU isn’t caused by system pods outside HPA’s scope — in which case Cluster Autoscaler is the fix, not HPA.”
+
+-------------------------------------------
+Q: How do you drain a node for maintenance without causing downtime in production?
+
+When a node needs maintenance (e.g., kernel patching, AWS EC2 restart, or hardware issue), I would follow these steps to gracefully move workloads without downtime:
+
+🔎 Step 1: Mark the Node Unschedulable
+     kubectl cordon <node-name>
+-This prevents new pods from being scheduled on this node.
+-Existing pods keep running.
+
+🔎 Step 2: Drain the Node Gracefully
+kubectl drain <node-name> --ignore-daemonsets --delete-emptydir-data
+--ignore-daemonsets → system pods like fluentd, kube-proxy stay running (they’ll restart on new node automatically).
+--delete-emptydir-data → warns that emptyDir data will be lost (so I check if any pods rely on it before proceeding).
+
+Pods managed by Deployments, ReplicaSets, StatefulSets, DaemonSets will be rescheduled on other healthy nodes.
+
+🔎 Step 3: Verify Pods Are Rescheduled
+kubectl get pods -o wide
+-Confirm that workloads from the drained node have been rescheduled to other nodes.
+-Use kubectl get events to watch scheduling activity.
+
+🔎 Step 4: Perform Node Maintenance
+-Patch OS, upgrade kernel, restart EC2 instance, etc.
+-Node stays cordoned until I’m ready.
+
+🔎 Step 5: Bring Node Back
+kubectl uncordon <node-name>
+-Marks the node schedulable again so new pods can be placed.
+
+⚠️ Key Considerations to Avoid Downtime
+Check Pod Disruption Budgets (PDBs):
+-If a PDB is too strict (e.g., maxUnavailable=0), draining may block.
+-I’d adjust PDBs temporarily if needed.
+-kubectl get pdb --all-namespaces
+
+Check Node Capacity:
+-Ensure the cluster has enough spare capacity.
+-If not, use Cluster Autoscaler to add extra nodes first.
+
+StatefulSets / Databases:
+-For apps with persistent volumes, drain carefully. Sometimes we do rolling drains one node at a time.
+
+✅ Summary Answer:
+“I would cordon the node to stop new scheduling, then drain it with kubectl drain --ignore-daemonsets --delete-emptydir-data to safely evict workloads. Kubernetes reschedules the pods on healthy nodes. I always check PodDisruptionBudgets and cluster capacity to ensure there’s no downtime. After maintenance, I uncordon the node to bring it back into service.”
+
+-------------------------------------------
+Q: Ingress is not routing traffic. How would you troubleshoot it?
+
+When an Ingress in Kubernetes is not routing traffic, I go through these steps systematically:
+
+🔎 Step 1: Check Ingress Resource
+kubectl get ingress -n <namespace>
+kubectl describe ingress <ingress-name> -n <namespace>
+-Verify hostnames, paths, and backend service mapping.
+-Look for misconfigured rules or missing host.
+
+Common mistake: host in ingress (myapp.example.com) doesn’t match the actual DNS.
+
+🔎 Step 2: Check Ingress Controller
+Ensure the Ingress Controller (NGINX, AWS ALB, Traefik, HAProxy) is running:
+
+kubectl get pods -n ingress-nginx
+kubectl logs <ingress-controller-pod> -n ingress-nginx
+
+If controller pods are CrashLoopBackOff or logs show config errors → fix deployment.
+
+🔎 Step 3: Check Service
+kubectl get svc -n <namespace>
+kubectl describe svc <service-name>
+-Ensure service type is correct (ClusterIP for Ingress).
+-Check service ports match what ingress expects.
+(e.g., if ingress routes to port 80 but service listens on 8080 → traffic breaks).
+
+🔎 Step 4: Check Endpoints
+kubectl get endpoints <service-name> -n <namespace>
+
+-If no endpoints → pods are not selected by service labels.
+-Mislabeling (app=web vs app=myweb) is a very common issue.
+
+🔎 Step 5: Check DNS & External Access
+Ensure domain (app.example.com) resolves to ingress LoadBalancer IP / external IP:
+
+nslookup app.example.com
+kubectl get svc -n ingress-nginx
+-If DNS points elsewhere → ingress never receives traffic.
+
+🔎 Step 6: Check TLS/HTTPS
+If using HTTPS, verify TLS secret exists and matches cert:
+
+kubectl describe secret <tls-secret> -n <namespace>
+-Misconfigured cert = browser errors.
+
+🔎 Step 7: Check Network Policies / Firewalls
+-If network policies are enabled, they may block ingress controller traffic to pods.
+-On cloud (AWS/GCP/Azure), check security groups / firewall rules.
+
+✅ Summary Answer:
+“I would first check the Ingress resource for correct host and path, then verify the ingress controller is running and has no errors. Next, I’d check the backend Service and Endpoints to ensure pods are correctly matched. I also confirm DNS is pointing to the ingress load balancer, TLS secrets are valid, and no NetworkPolicies or firewalls block traffic. Most commonly, it turns out to be a mismatch between Ingress host/service port or missing service endpoints.”
+---------------------------------------------------------------------------------------------------------------------------------
+
+🔎 Q: A Pod is stuck in ContainerCreating. How do you troubleshoot?
+When a pod is in ContainerCreating, it means Kubernetes has scheduled the pod but is unable to fully start the container. I’d debug systematically:
+
+1️⃣ Check Pod Events
+kubectl describe pod <pod-name> -n <namespace>
+
+Look at the Events section at the bottom.
+Common issues:
+  -Failed to pull image → image not found or no permissions.
+  -FailedMount → PVC/PV or ConfigMap/Secret mount issues.
+  -NetworkPlugin cni failed → CNI problem.
+
+2️⃣ Check Node Status
+kubectl get nodes
+kubectl describe node <node-name>
+If node is NotReady, pod won’t start.
+Disk pressure, memory pressure, or taints could block scheduling.
+
+3️⃣ Check Image Pull Issues
+kubectl describe pod <pod-name> | grep "Failed to pull image"
+If using private repo → check imagePullSecrets.
+
+Verify credentials:
+-kubectl get secret <secret-name> -n <namespace> -o yaml
+
+Try pulling image manually on worker node with docker pull / ctr.
+
+4️⃣ Check Volume Mounts (PVC/PV)
+If pod uses PVC:
+kubectl get pvc -n <namespace>
+kubectl describe pvc <pvc-name>
+If PVC is in Pending → storage class or PV issue.
+Check kubectl get storageclass.
+
+5️⃣ Check CNI / Networking
+If pod stuck due to networking:
+kubectl get pods -n kube-system
+kubectl logs <cni-pod> -n kube-system
+E.g., Calico/Flannel failing to assign IP.
+
+6️⃣ Node Resource Constraints
+Pod may not start if node lacks CPU/Memory or disk space.
+
+kubectl describe node <node-name>
+kubectl top node <node-name>
+
+Look for Insufficient memory/cpu messages.
+
+7️⃣ Security Context / Privileged Issues
+-If pod requires privileged mode or hostPath, check if PSP/OPA/Gatekeeper is blocking.
+-Look for events like Forbidden: no providers available.
+
+✅ Summary (Interview Style):
+“If a pod is stuck in ContainerCreating, I first describe the pod to check events. Most of the time it’s either an image pull error, a volume mount issue, or a CNI problem. Then I verify node health, PVCs, imagePullSecrets, and networking. In production, I’ve often seen this when a private Docker registry secret wasn’t configured or when PVC was stuck in Pending because no matching storage class existed.”
+
+-------------------------------------------
+
+Q: A pod is stuck in CrashLoopBackOff. What diagnostic steps do you take?
+When a pod is in CrashLoopBackOff, it means the container inside keeps failing and restarting. I would troubleshoot step by step:
+
+🔎 Step 1: Check Pod Status
+kubectl get pod <pod-name> -n <namespace>
+kubectl describe pod <pod-name> -n <namespace>
+-Look at events in describe output → they often show errors like “ImagePullBackOff”, “OOMKilled”, or “CrashLoopBackOff”.
+-Check restart count to see how often it’s failing.
+
+🔎 Step 2: Check Pod Logs
+kubectl logs <pod-name> -n <namespace>
+kubectl logs <pod-name> -c <container-name> -n <namespace>
+-See why the application is crashing.
+-Example errors: missing config, DB connection refused, invalid environment variable.
+-If it’s restarting too fast, add --previous to check last run logs.
+
+🔎 Step 3: Check Container Command / Entrypoint
+Sometimes the container exits because the entrypoint script finishes or has a wrong command.
+
+kubectl describe pod <pod-name>
+-Look under command: or args: to confirm.
+
+🔎 Step 4: Check Resource Limits
+kubectl describe pod <pod-name> | grep -A5 "Limits"
+kubectl top pod <pod-name> -n <namespace>
+-If OOMKilled → container is exceeding memory limits.
+-If CPU throttled heavily, it may fail to start.
+
+🔎 Step 5: Check ConfigMaps / Secrets
+If app needs environment variables or mounted configs:
+
+kubectl describe configmap <cm-name>
+kubectl describe secret <secret-name>
+-Missing config values or wrong DB credentials → app crash.
+
+🔎 Step 6: Debug with kubectl exec (if container runs briefly)
+If pod comes up for a few seconds, try to exec inside:
+kubectl exec -it <pod-name> -- /bin/sh
+Helps check logs, configs, and connectivity inside container.
+
+🔎 Step 7: Node-Level Issues
+If multiple pods are crashing on the same node → check node resources and kubelet logs:
+kubectl describe node <node-name>
+kubectl get events --sort-by=.metadata.creationTimestamp
+
+✅ Summary (Interview Style):
+“I would start with kubectl describe pod to see events, then check the logs of the container to identify why it’s failing. Next, I’d confirm if the crash is due to bad entrypoint commands, missing configs, or resource issues like OOMKilled. If needed, I’d verify ConfigMaps, Secrets, and Service dependencies. In production, most of the CrashLoopBackOff issues I’ve seen were due to wrong environment variables, DB not reachable, or resource limits being too strict.”
+
+
+-------------------------------------------
+
+kubernetes advanced scenario based questions production grade?
+
+1. etcd is running out of space in production – how do you handle it?
+First, check etcd health:
+ETCDCTL_API=3 etcdctl --endpoints=<etcd-endpoint> endpoint health
+
+Compact etcd DB if too many old keys:
+ETCDCTL_API=3 etcdctl compact <rev-number>
+
+Defrag to reclaim disk:
+ETCDCTL_API=3 etcdctl defrag
+
+For long-term → set TTLs on non-critical keys, monitor disk, run etcd in a dedicated node group with persistent storage.
+
+2. Suddenly all pods in a namespace are in ImagePullBackOff. How do you debug?
+-Check if the container registry is down.
+-Verify imagePullSecrets:
+
+kubectl get secret <secret-name> -n <namespace> -o yaml
+
+Look for expired registry credentials (common in AWS ECR, DockerHub rate-limiting).
+Fix → update the secret with a fresh token and restart pods.
+In production, set up image caching (Harbor, Artifactory, ECR cache).
+
+3. You deployed a new version, but 10% of traffic is failing. How do you roll back safely?
+Check rollout status:
+kubectl rollout status deployment <deployment>
+
+Identify failing pods with kubectl logs.
+
+Rollback immediately:
+kubectl rollout undo deployment <deployment>
+
+For production → use Canary deployments with Argo Rollouts/Istio so only a small % of traffic goes to new version first.
+
+4. A node went down in production. Some critical pods didn’t reschedule. Why?
+-Pod has nodeSelector/affinity tied to that node.
+-Pod uses local PV (hostPath, local storage) → not portable.
+-Pod is a DaemonSet → runs only on specific nodes.
+Solution →
+-Use StorageClasses + dynamic provisioning instead of local PV.
+-Add podAntiAffinity and PDBs for HA.
+-Enable Cluster Autoscaler for node replacement.
+
+5. Your cluster is running out of resources during peak load. How do you handle autoscaling?
+-Enable Horizontal Pod Autoscaler (HPA) for scaling pods based on CPU/memory/custom metrics.
+-Use Cluster Autoscaler to add/remove worker nodes dynamically.
+-Use Vertical Pod Autoscaler (VPA) to adjust pod requests/limits.
+-In production → always combine HPA + Cluster Autoscaler + PodDisruptionBudgets for resiliency.
+
+6. You notice API server latency is very high. How do you debug?
+-Check API server logs.
+-Inspect etcd health (slow etcd = slow API).
+-Look at request volume – maybe too many clients or controllers spamming.
+-Use metrics from kube-apiserver (via Prometheus).
+-Apply request limits (API rate limiting) for aggressive clients (e.g., CI/CD pipelines).
+
+7. How do you handle secrets in production securely?
+-Never store secrets in plain Kubernetes Secrets (they’re just base64).
+-Use Sealed Secrets or External Secrets Operator with AWS Secrets Manager/HashiCorp Vault.
+-Enable Encryption at Rest for secrets in etcd.
+-Restrict RBAC – only specific service accounts can access secrets.
+
+8. A namespace is consuming too many resources and affecting others. How do you prevent this?
+-Use ResourceQuotas to limit total CPU/Memory per namespace.
+-Use LimitRanges to enforce per-pod resource limits.
+-In multi-tenant clusters, use OPA/Gatekeeper or Kyverno to enforce policies cluster-wide.
+
+9. Pods are stuck in Terminating state forever. How do you resolve this?
+-Pod has a Finalizer that didn’t execute → remove it manually:
+-kubectl patch pod <pod> -p '{"metadata":{"finalizers":[]}}' --type=merge
+-Stuck due to unresponsive NFS/PV → force delete pod:
+-kubectl delete pod <pod> --grace-period=0 --force
+-Long-term → fix storage driver / cleanup finalizers in controller.
+
+10. You need to perform cluster upgrades in production. How do you ensure zero downtime?
+-Upgrade using Managed K8s (EKS/GKE/AKS) where control plane upgrades are automated.
+-Use PodDisruptionBudgets (PDBs) to prevent evicting too many pods at once.
+-Upgrade worker nodes gradually using node draining:
+-kubectl drain <node> --ignore-daemonsets --delete-emptydir-data
+-Use RollingUpdate strategy so deployments reschedule pods without downtime.
+-Test in staging before production.
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+Q. How do you ensure zero downtime deployment in Kubernetes?
+
+Ensuring zero downtime deployment in Kubernetes requires careful handling of deployments, rolling updates, health checks, and traffic management. Here’s my approach:
+1️⃣ Use Rolling Updates
+Kubernetes Deployment supports rolling updates by default.
+Example in a deployment YAML:
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+maxUnavailable: 0 ensures no pod is terminated until a new pod is ready, guaranteeing uptime.
+maxSurge: 1 allows one extra pod to be scheduled temporarily to handle traffic.
+
+2️⃣ Configure Readiness and Liveness Probes
+Readiness probes ensure a pod doesn’t receive traffic until it is fully ready.
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+Liveness probes ensure failed pods are restarted automatically without affecting healthy traffic.
+
+3️⃣ Use Service + Load Balancer
+Kubernetes Service routes traffic only to ready pods.
+During deployment, the old pods serve traffic until new pods pass readiness checks, ensuring continuous availability.
+
+4️⃣ Optional: Blue-Green / Canary Deployment
+For critical applications:
+Blue-Green: Deploy new version in separate pods, switch traffic when verified.
+Canary: Gradually route a small percentage of traffic to new pods, monitor metrics, then shift 100%.
+
+5️⃣ Monitor Metrics During Deployment
+Use Prometheus/Grafana to monitor CPU, memory, error rates, response time.
+Rollback immediately if SLA breaches or error rates increase.
+
+6️⃣ Rollback Strategy
+With deployments:
+kubectl rollout undo deployment <deployment-name>
+This allows instant rollback to last stable version without downtime.
+
+✅ Key Interview Points:
+-Rolling updates with maxUnavailable: 0.
+-Readiness/liveness probes to control traffic.
+-Blue-Green / Canary for critical releases.
+-Continuous monitoring and fast rollback.
+
+-------------------------------------------
+
+
+1. Node is NotReady for 10+ minutes
+“I’d start by checking node status using kubectl get nodes and describe it with kubectl describe node <node-name> to see taints, conditions, or kubelet issues. Then I’d SSH into the node and check kubelet logs (journalctl -u kubelet) and system metrics (CPU, disk pressure, memory). If the node is unhealthy, I’d cordon and drain it, then either restart kubelet or replace the node. For long-term, I’d ensure monitoring on node health and use cluster autoscaler for replacement automation.”
+
+2. Pods stuck in Pending even though nodes are free
+“I’d check kubectl describe pod to see why scheduling failed — usually resource requests don’t fit, missing nodeSelector/tolerations, or PVC not bound. I’d also check cluster quotas and taints. If it’s a scheduling constraint, I’d fix node labels or adjust requests/limits. If it’s PVC-related, I’d verify the storage class and binding. Monitoring scheduling events helps prevent recurrence.”
+
+3. HPA not scaling pods under high CPU load
+“First, I’d check if metrics-server is running (kubectl top pods) since HPA depends on it. Then I’d describe the HPA (kubectl describe hpa) to see why it didn’t trigger scaling. Sometimes pods don’t have proper CPU requests defined, so utilization never triggers. I’d fix by setting resource requests/limits and validating metrics. If needed, I’d scale nodes with Cluster Autoscaler to support more pods.”
+
+4. Pod stuck in CrashLoopBackOff
+“I’d check logs with kubectl logs <pod> -p to see the last crash. Common causes are misconfigured env vars, DB connection failures, or app bugs. I’d also check kubectl describe pod for events like OOMKilled or readiness probe failures. If it’s config-related, I’d fix ConfigMap/Secret. If it’s resource-related, I’d adjust limits. For resilience, I’d add retries and health checks in the app.”
+
+5. Deployment succeeds but traffic still goes to old pods
+“I’d check the Service definition to ensure the selector matches the new pod labels. If old pods are still endpoints, the Service might be misconfigured. I’d also check Ingress or DNS caching. Running kubectl get endpoints helps confirm routing. To prevent this, I’d use canary/rolling updates with proper readiness probes so only healthy new pods receive traffic.”
+
+6. Pods getting OOMKilled
+“I’d check pod events and logs (kubectl describe pod) — OOMKilled means the pod exceeded its memory limit. I’d analyze app memory usage with metrics (kubectl top pod) and adjust requests/limits appropriately. If it’s a memory leak, I’d involve devs to fix. For prevention, I’d set resource quotas and alerts on pod restarts.”
+
+7. Pod cannot reach external DB/API
+“I’d first exec into the pod and test connectivity (curl, ping, nslookup). If DNS resolution fails, I’d check CoreDNS logs. If network fails, I’d check NetworkPolicies, security groups (in cloud), or firewall rules. Also, verify if the cluster uses a NAT Gateway for outbound internet. For long-term, I’d maintain network policies and document external dependencies.”
+
+8. Service of type LoadBalancer not accessible
+“I’d check if the cloud provider provisioned the LB (kubectl get svc). Then verify external IP is assigned and firewall/security group rules allow inbound. I’d also check if target pods are ready and part of the Endpoints. If it’s still failing, I’d test directly with NodePort to isolate LB issues. Prevention: monitoring LB provisioning events and readiness checks.”
+
+9. PVC stuck in Pending (PV not bound)
+“I’d describe the PVC to see why binding failed. Often the storage class is missing or no matching PV exists. I’d check kubectl get sc and provision a PV with matching size and access mode. If dynamic provisioning is enabled, I’d check cloud storage permissions. To prevent this, I’d standardize default StorageClasses and quotas.”
+
+10. etcd corruption / cluster recovery
+“If etcd is corrupted, the control plane is impacted. I’d first check if we have an etcd snapshot backup (etcdctl snapshot restore). In managed clusters (EKS/GKE/AKS), I’d rely on cloud-managed control plane recovery. For self-managed clusters, I’d restore from the latest snapshot and restart the API server. As a best practice, I’d schedule automated etcd backups and test DR playbooks.”
+
+
+-------------------------------------------
+Q. How do you perform Canary Deployment in Kubernetes?
+
+Canary deployment in Kubernetes means gradually rolling out a new version of an application to a small percentage of users, testing its stability, and then promoting it to full traffic if everything is healthy. This ensures we minimize risk compared to deploying to 100% at once."
+
+1️⃣ Implementation Approaches in Kubernetes
+Option A: Multiple Deployments + Weighted Services
+Create two Deployments:
+ -Stable (v1) – the current version.
+ -Canary (v2) – the new version.
+
+-Expose both behind the same Service.
+-Control traffic distribution by adjusting replica counts.
+
+Example:
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-v1
+spec:
+  replicas: 4
+  template:
+    spec:
+      containers:
+      - name: app
+        image: myapp:v1
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-v2
+spec:
+  replicas: 1   # Canary gets less traffic
+  template:
+    spec:
+      containers:
+      - name: app
+        image: myapp:v2
+
+
+-If Service has 5 pods total, ~20% of traffic goes to canary.
+-Gradually increase replicas for canary and decrease stable replicas if monitoring is good.
+
+Option B: Using Ingress / Service Mesh (Advanced)
+-With NGINX Ingress Controller, Istio, or Linkerd, we can do weighted routing.
+-Example with Istio VirtualService:
+
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: app
+spec:
+  hosts:
+  - myapp.example.com
+  http:
+  - route:
+    - destination:
+        host: app-v1
+      weight: 90
+    - destination:
+        host: app-v2
+      weight: 10
+
+-Here, only 10% of traffic is sent to canary version.
+-This gives finer control than replica-based method.
+
+2️⃣ Monitoring Canary
+-Use Prometheus + Grafana or ELK for:
+ -Error rate (5xx, 4xx)
+ -Latency
+ -CPU/memory usage
+-If metrics are healthy, proceed to increase traffic share.
+-If issues appear → rollback to stable.
+
+3️⃣ Rollback Strategy
+-Delete or scale down the canary Deployment to 0.
+-In service mesh approach, change routing weight back to 100% stable.
+-Always keep blue/green rollback option ready.
+
+✅ Key Points Interviewers Expect in Your Answer:
+-Canary = small controlled rollout.
+-Implemented via replica ratio or traffic splitting (Ingress/Service Mesh).
+-Monitoring is critical before full rollout.
+-Always have a rollback path.
+
+-------------------------------------------
+Q. How do you set resource limits in Kubernetes?
+
+In Kubernetes, I set resource requests and limits in the Pod or Deployment manifest under the resources field. This ensures fair scheduling and prevents any single container from consuming excessive cluster resources."
+
+1️⃣ Example YAML
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: my-app-container
+        image: my-app:latest
+        resources:
+          requests:
+            cpu: "500m"    # Minimum guaranteed CPU (0.5 core)
+            memory: "256Mi" # Minimum guaranteed memory
+          limits:
+            cpu: "1"       # Maximum 1 core
+            memory: "512Mi" # Maximum 512MB memory
+
+2️⃣ How It Works
+-Requests: Minimum resources Kubernetes guarantees. Scheduler uses this to decide where the Pod can run.
+-Limits: Maximum resources a container can use.
+ -If CPU > limit → throttling occurs.
+ -If Memory > limit → container gets OOMKilled.
+
+3️⃣ Production Practices
+-Namespace ResourceQuota & LimitRange:
+  -I enforce quotas at namespace level so teams don’t consume all cluster resources.
+  -Example: set default limits for every Pod in a namespace.
+
+-Monitoring:
+ -I monitor actual usage with Prometheus + Grafana.
+ -Adjust requests/limits based on real utilization → avoids over-provisioning and throttling.
+
+Best Practices:
+ -Start with actual usage data (kubectl top pods) before setting.
+ -Avoid setting requests too low (can cause eviction).
+ -Avoid setting limits too high (can starve other apps).
+
+✅ Key Takeaway for Interviewer:
+"I always define CPU/memory requests and limits in manifests. I also enforce namespace-level quotas and monitor usage. This prevents noisy-neighbor problems and ensures predictable performance in production."
+
+-------------------------------------------
+
+How do you monitor logs in Kubernetes?
+
+"In Kubernetes, logs are critical for troubleshooting and monitoring workloads. I approach it in multiple layers depending on whether it’s basic debugging or centralized production monitoring."
+
+1️⃣ Pod-Level (On-the-fly Debugging)
+Use kubectl logs to view logs from a Pod:
+
+kubectl logs <pod-name>
+kubectl logs <pod-name> -c <container-name>     # if multiple containers
+kubectl logs -f <pod-name>                            # stream logs
+kubectl logs --previous <pod-name>                 # check logs from a crashed container
+
+For multi-pod deployments:
+kubectl logs -l app=my-app --all-containers
+This fetches logs from all Pods with a specific label.
+
+2️⃣ Centralized Logging (Production Standard)
+Since Pods are ephemeral, logs must be aggregated. I typically use EFK or ELK stack or cloud-native logging:
+EFK (Elasticsearch + Fluentd/Fluent Bit + Kibana)
+ -Fluent Bit/Fluentd collects container logs from nodes.
+ -Elasticsearch stores & indexes logs.
+ -Kibana provides dashboards and search.
+Promtail + Loki + Grafana
+ -Loki is lightweight, optimized for K8s.
+ -Cheaper and integrates seamlessly with Grafana.
+Cloud Provider Solutions:
+ -AWS EKS → CloudWatch Container Insights.
+ -GCP GKE → Cloud Logging.
+ -Azure AKS → Azure Monitor.
+
+3️⃣ Monitoring Practices
+-Structured Logging: Enforce JSON log format for easier parsing.
+-Correlation IDs: Add request IDs in microservices to trace transactions across logs.
+-Log Retention & Cost Control: Define log retention policies (e.g., 30 days for prod, 7 days for dev).
+-Alerts on Logs: Integrate with Prometheus + Alertmanager or cloud alerting to trigger alerts based on error log patterns.
+
+4️⃣ Example Production Setup
+-"In my last project, we deployed Fluent Bit as a DaemonSet to ship logs from all nodes to Elasticsearch. Then, we visualized and searched logs in Kibana. We also had log-based alerts integrated with PagerDuty for critical errors like OutOfMemory or repeated 5xx responses."
+
+✅ Key Takeaway for Interviewer:
+"I use kubectl logs for quick debugging, but in production, I always set up centralized log aggregation using EFK/Loki or cloud-native tools, enforce structured logging, and integrate alerts to ensure issues are detected early."
+
+
+-------------------------------------------
+What is Ingress and Ingress controller
+
+🔹 Ingress
+Ingress is a Kubernetes API object that manages external access to services in a cluster.
+It provides HTTP and HTTPS routing to internal services.
+Instead of exposing each service with a LoadBalancer or NodePort, you define centralized routing rules in Ingress.
+
+👉 Example use cases:
+Route app.company.com/login → login-service
+Route app.company.com/api → api-service
+Terminate SSL/TLS at the edge instead of inside pods.
+
+Ingress = Rules (WHAT traffic should go where).
+
+🔹 Ingress Controller
+Ingress itself is just a specification — it needs a controller to make it work.
+Ingress Controller is the actual implementation that watches Ingress resources and configures a reverse proxy / load balancer accordingly.
+Popular controllers:
+ -NGINX Ingress Controller
+ -AWS ALB Ingress Controller (AWS Load Balancer Controller)
+ -HAProxy
+ -Traefik
+
+Ingress Controller = Implementation (HOW traffic is handled).
+
+🔹 Analogy
+Ingress = A set of traffic rules (like road signs: "cars to the left, trucks to the right").
+Ingress Controller = The traffic police who enforce those rules (actually directing the traffic).
+
+🔹 Example: Ingress Resource
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+spec:
+  rules:
+  - host: app.company.com
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: api-service
+            port:
+              number: 80
+      - path: /login
+        pathType: Prefix
+        backend:
+          service:
+            name: login-service
+            port:
+              number: 80
+
+Here:
+/api traffic goes to api-service
+/login traffic goes to login-service
+
+✅ Interview-Ready Answer
+"Ingress is a Kubernetes object that defines routing rules for HTTP/S traffic into the cluster, while an Ingress Controller is the component that implements those rules by configuring a reverse proxy/load balancer like NGINX or ALB. Without an Ingress Controller, Ingress objects don’t do anything. For example, I’ve used the AWS ALB Ingress Controller in EKS to expose microservices securely with SSL termination and path-based routing."
+
+-------------------------------------------
+
+What Happens if the Scheduler Fails?
+
+🔹 What Happens if the Scheduler Fails?
+-The cluster keeps running existing workloads (already scheduled pods are unaffected).
+-But new pods cannot be scheduled (they’ll remain in Pending state).
+-Auto-scaling, rolling updates, and rescheduling of failed pods won’t happen.
+
+🔹 How to Handle Scheduler Failures
+1. Check Scheduler Health
+Run:
+kubectl get pods -n kube-system | grep scheduler
+
+Logs:
+kubectl logs -n kube-system kube-scheduler-<node-name>
+
+2. If Scheduler Pod Crashed
+-If using static pod (default in kubeadm setups), it runs as a pod defined in /etc/kubernetes/manifests/kube-scheduler.yaml.
+-Check if the file is present and valid.
+-Restart kubelet to re-create it:
+-systemctl restart kubelet
+
+3. If Scheduler is Stuck or Misconfigured
+-Validate its config (/etc/kubernetes/scheduler.conf).
+-Common issues: wrong kubeconfig, API Server connectivity issues, certificate expiration.
+-Fix and redeploy.
+
+4. Failover / HA Setup
+-In production, always run multiple scheduler instances for HA.
+-Only one scheduler is active at a time (leader election).
+-If one fails, another takes over automatically.
+-Ensure you deployed Kubernetes in HA mode (multi-master setup).
+
+5. Temporary Manual Scheduling (Workaround)
+-If urgent, you can manually assign pods to nodes by setting nodeName in Pod spec:
+spec:
+  nodeName: worker-1
+
+Or use kubectl patch to bind a pod:
+kubectl patch pod mypod -p '{"spec":{"nodeName":"worker-1"}}'
+
+✅ Interview-Ready Answer
+"If the scheduler fails, existing workloads continue running but new pods remain in Pending state. My first step is to check the scheduler pod status and logs in the kube-system namespace. If it’s a static pod issue, I fix its manifest under /etc/kubernetes/manifests/ and restart kubelet. If it’s a config or connectivity issue, I validate the scheduler config and API server access. In production, we mitigate this by running multiple schedulers with leader election so another instance takes over automatically. As a temporary workaround, pods can also be scheduled manually by assigning them to specific nodes."
+
+-------------------------------------------
+
+
+
+-------------------------------------------
+
+
+-------------------------------------------
+
+
+
+-------------------------------------------
+
+
+-------------------------------------------
+
+
+
+-------------------------------------------
+
+
+
+
 
 
 

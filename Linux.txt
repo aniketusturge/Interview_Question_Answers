@@ -1,0 +1,67 @@
+Q. How do you handle a disk full issue in Linux?
+
+"If I get a disk full issue in Linux in production, I handle it with a structured troubleshooting approach to quickly free up space while minimizing downtime:
+
+1️⃣ Identify the Full Filesystem
+Run:
+df -h
+to check which filesystem/partition is full (e.g., /, /var, /tmp, /home).
+If inode exhaustion (not space):
+df -I
+
+2️⃣ Find Large Files & Directories
+To locate big consumers of disk space:
+
+du -sh /* | sort -h
+du -sh /var/* | sort -h
+
+To find large files quickly:
+find / -xdev -type f -size +500M
+
+3️⃣ Check for Logs & Rotations
+In production, /var/log often fills up.
+I check:
+ls -lh /var/log
+If a log is huge (e.g., messages, app.log), I rotate/truncate:
+> /var/log/app.log    # truncate safely
+
+(or use logrotate for automation).
+
+4️⃣ Remove Orphaned Files
+Sometimes space is consumed by deleted files still held by processes.
+Check with:
+lsof | grep deleted
+Kill/restart the process to release space.
+
+5️⃣ Clean Temporary & Cache Files
+Clear package caches:
+yum clean all    # RHEL/CentOS
+apt-get clean    # Ubuntu/Debian
+
+Remove temporary files:
+rm -rf /tmp/*
+
+6️⃣ Archive or Move Data
+For old logs/backups, compress and move to S3/NFS:
+tar -czf old-logs.tar.gz /var/log/old/
+mv old-logs.tar.gz /mnt/backup/
+
+7️⃣ Resize or Extend Disk (Long-Term Fix)
+If space usage is legitimate (DB growth, app data), I:
+Add a new disk and mount it.
+Or extend existing LVM volume:
+lvextend -L +20G /dev/vg0/lv_root
+resize2fs /dev/vg0/lv_root
+Update /etc/fstab to ensure persistence.
+
+8️⃣ Monitoring & Prevention
+Set up alerts in Prometheus/Grafana, CloudWatch, or Nagios to trigger at 70–80% disk usage.
+Automate log rotation & cleanup with cron jobs or Ansible.
+
+✅ Key Interview Points:
+-Identify full partition → df -h.
+-Find large files → du, find.
+-Check logs, temp, caches → clean safely.
+-Handle deleted-but-open files via lsof.
+-Resize disk (LVM/Cloud) if needed.
+-Always set up monitoring & preventive measures.
