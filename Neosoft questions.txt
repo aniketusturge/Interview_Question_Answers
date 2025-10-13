@@ -1,0 +1,80 @@
+ How to kill any process like nginx.
+How many users are there in Linux .
+How much RAM uses.
+How many users are in your machine .
+What is UID & GID.
+How to check the size of all files in your directory.
+Inline policy.
+I want to change public subnets to private subnets and private subnets to the public .
+Use of NAT gateway.
+Suppose I have one EC2 instance that is in running state and I reboot the instance ,are there changes in my public IP?
+Why we use Elastic IP?
+What is the difference in ecs EC2 vs EC2 fargate? And which is better?
+What is parameter group in RDS.
+Types of records in route 53..
+Which record you work and used..
+What is alias in route 53 why we used?
+Can I add SSL certificates for cloudfront?
+Suppose I deployed my changes in cloudfront..& I want to clear the cache how can I do for that.
+Cache invalidation in cloudfront?
+How you gave jenkins access to ECS cluster?
+Codepileline have how many stages?
+How you configured deployed stage in AWS codepileline?
+I have a jenkins server and I want to give access to anyone user ? What is the steps I have to do..
+What is the range of private & public IP?
+How you send the apache logs or nginx logs in grafana...how to send the logs to Prometheus? Who send the data to Prometheus & grafana..
+Cloudwatch is free or paid?
+I have an EC2 instance and I want to attach waf to it..how can I apply steps?.
+What are the roles in waf?How does it work?
+
+ IAM identify centre .
+In a single block create 2 EC2 instances with different types.
+For each meta argument.
+
+ Inline policy use case?
+I have to access S3 for any user :- create a role and be attached to Instance.
+...
+I already attached one role to an instance and now I want to attach another role..both roles I want..what can we do.
+Types of EC2 
+Default storage while launching the instance 
+Volume types of family
+Iops & throughput
+Auto scaling and types 
+Auto scaling steps
+Load balancer types algorithms protocol why we used?
+What is Gateway load balancer & protocol 
+Internal ALB works on which layers? 7
+If I want to used ALB for database which I will be used?
+I don't want to delete EC2 server by any other user? terminal protection.
+Without downtime change the server size.
+Lost my ssh key of my prod server I want to ssh? How can I do.
+Cool down & warm up period in target group.
+Basic monitoring and details monitoring.
+Vpc peering steps and used cases where we usef? another region or another account?
+After peering what I will be able to do?
+Both vpc have same cidr range can we create vpc peering?
+While Route table associates which subnets we want to add after peering?
+[9:55 pm, 5/9/2025] Rajesh TCS: How can I access the private database without using the bastion host? If possible then how? Like VPN
+VPN vs VPC?
+[9:55 pm, 5/9/2025] Rajesh TCS: Route 53 used for? Different Route Police used cases?
+Alias vs CNAME
+NS record 
+SOA records
+
+ If the private eks cluster is created and you want to access them...what are the steps...
+
+ -What is Null resources & where we used?
+-Life cycle policy in terraform 
+-can you make some restrictions to create infrastructure on AWS by manually.
+-terraform format vs validate.
+-Terraform workflow 
+-terraform workspace 
+-
+
+ Capacity provider
+Container insides
+In you task defination having 5 container..one failing how troubleshoot 
+If one container health check is not healthy...
+Secure ecs task.
+How you monitor ecs cluster and service.
+Hard limit and soft limit in ecs task defination.

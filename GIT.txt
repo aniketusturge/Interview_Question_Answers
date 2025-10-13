@@ -38,7 +38,7 @@ git rebase main
 Context	Recommended
 Before Pull Request	✅ Rebase your branch onto latest main to reduce conflicts
 During Merge to Main	✅ Use Merge (Squash Merge) to retain a clean, traceable commit
-Automated CI	✅ Merge is safer — rebases can break history if done incorrectly
+Automated CI	        ✅ Merge is safer — rebases can break history if done incorrectly
 Release Branching	✅ Merge for traceability, Rebase for hotfixes if needed cleanly
 
 🔧 Example Workflow in CI/CD

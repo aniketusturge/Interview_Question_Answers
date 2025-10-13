@@ -274,7 +274,6 @@ Best practice:
 
 In short: Set explicit permissions in the bucket’s account and authenticate using IAM roles or policies from the requesting account.
 
-
 ------------------------------------------------
 
 How do you increase EBS volume and mount it?
@@ -290,18 +289,16 @@ Steps:
 2.Verify Volume Update
 On the EC2 instance, run:
 
-bash
-lsblk
-to see the updated disk size.
+lsblk :to see the updated disk size.
 
 3.Resize the Filesystem (Linux example)
 For ext4:
 
-bash
-sudo resize2fs /dev/xvdf
-For XFS:
+sudo growpart /dev/xvda 1
 
-bash
+sudo resize2fs /dev/xvda1
+
+For XFS:
 sudo xfs_growfs -d /mount/point
 
 4.Mount the Volume (if it’s a new or unmounted disk)
@@ -453,7 +450,6 @@ Best practice:
 -Use IAM roles for authentication.
 -Use VPC endpoints to keep traffic inside AWS.
 -Apply least privilege in IAM policies.
-
 
 ----------------------------------------------
 

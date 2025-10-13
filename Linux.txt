@@ -65,3 +65,101 @@ Automate log rotation & cleanup with cron jobs or Ansible.
 -Handle deleted-but-open files via lsof.
 -Resize disk (LVM/Cloud) if needed.
 -Always set up monitoring & preventive measures.
+
+------------------------------------------------------------
+
+killerkoda labs 
+
+Check all the kernel information.
+uname -a
+
+Check for old versions of the kernel that are on the system.
+ls /boot/vm*
+
+Echo the number of versions into /root/kernel
+echo 1 > /root/kernel
+
+Next we will check how many packages are on the system.
+dpkg -l | wc -l
+
+What is the version of ssh on this system? Server and client.
+dpkg -l | grep -i ssh
+
+Check disk information and count partitions
+fdisk -l | grep -i vd
+
+Why did we use VD?
+Let's use another command to see that information another way.
+lsblk
+and
+blkid
+
+First we check what version of Linux we're on.
+cat /etc/*release
+
+Next we check the kernel version.
+uname -r
+
+Next we might want to know how long the system has been up.
+uptime
+
+Next we might want to see how the system booted and what kernel parameters were passed when the system was started.
+cat /proc/cmdline
+
+Check your ip address
+ip addr 
+
+What is the name of your interface?
+ip addr | grep enp | grep mtu | awk '{print $2}' | sed 's/://'
+
+Put that value in a file /root/interface.
+ip addr | grep enp | grep mtu | awk '{print $2}' | sed 's/://' > /root/interface
+
+There are other ways to do this, but this will do it with one command.
+What is the ip of your interface?
+ip addr | grep enp | grep inet | awk '{print $2}' 
+
+Put that value in a file /root/primary-ip.
+ip addr | grep enp | grep inet | awk '{print $2}' > /root/primary-ip
+
+Let's pull the default route for your system
+ip route
+
+What is the default route for your system? Write this out to /root/default
+ip route | grep -i default | awk '{print $3}' > /root/default
+
+Ping the default gateway 3 times and verify that you get a response back
+ping -c3 `ip route | grep -i default | awk '{print $3}'`
+
+Check what ports are open on your system.
+ss -ntulp
+ss -ntulp | grep -E "sshd|containerd"
+
+Echo "yes" if you can see sshd and containerd listening /root/ports .
+We can see them, so we'll set that to yes.
+
+Another way to look at the ports/processes for sshd and containerd
+lsof -i :22
+
+Connect to port 22. #Timeout just causes it to drop after 3 sec
+timeout 3 nc 127.0.0.1 22
+
+So let's stop containerd and verify that the process is no longer running.
+systemctl status containerd
+You may have to hit "q" to escape.
+
+and we'll stop it.
+systemctl stop containerd
+
+Verify that you no longer see containerd running or the port open on the system.
+ss -ntulp | grep containerd
+
+
+
+
+
+
+
+
+
+
