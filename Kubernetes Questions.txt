@@ -595,13 +595,13 @@ spec:
         requests:
           storage: 1Gi
 🔍 3. Key Differences Summary Table
-Feature			Deployment			StatefulSet
-Pod identity		Anonymous/interchangeable	Unique (pod-0, pod-1, etc.)
-Use case		Stateless apps			Stateful apps (DBs, message queues)
-Storage			Shared or ephemeral		Dedicated persistent storage per pod
-Pod ordering		No				Enforced (start, scale, update, delete)
-Headless service	Optional			Required (for stable DNS)
-Volume reuse		Not guaranteed			PVCs tied to pod identity
+Feature			    Deployment			                StatefulSet
+Pod identity		Anonymous/interchangeable	      Unique (pod-0, pod-1, etc.)
+Use case		    Stateless apps			            Stateful apps (DBs, message queues)
+Storage			    Shared or ephemeral		          Dedicated persistent storage per pod
+Pod ordering		No				                      Enforced (start, scale, update, delete)
+Headless service	Optional			                Required (for stable DNS)
+Volume reuse		Not guaranteed			            PVCs tied to pod identity
 
 ✅ Summary (Wrap-Up):
 So, I use Deployments for scalable, stateless services, and StatefulSets when the application needs stable identity, persistent storage, and ordered deployment — such as databases or clustered apps like Kafka and Cassandra.
