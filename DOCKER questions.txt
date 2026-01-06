@@ -1451,7 +1451,6 @@ Smaller build times in Jenkins/GitHub Actions
 docker history image_name
 
 💡 In one line:
-
 Docker layer caching reuses unchanged image layers to avoid rebuilding them, making Docker builds faster and more efficient.
 
 
