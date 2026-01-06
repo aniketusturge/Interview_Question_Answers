@@ -1434,18 +1434,13 @@ COPY package.json .
 RUN npm install
 COPY . .
 
-
 Dependencies install only when package.json changes.
 
 🧠 Why layer caching matters (Interview point)
-
-Faster CI/CD builds
-
-Reduced network & compute usage
-
-Efficient image rebuilds
-
-Smaller build times in Jenkins/GitHub Actions
+-Faster CI/CD builds
+-Reduced network & compute usage
+-Efficient image rebuilds
+-Smaller build times in Jenkins/GitHub Actions
 
 🧪 Bonus: View image layers
 docker history image_name
