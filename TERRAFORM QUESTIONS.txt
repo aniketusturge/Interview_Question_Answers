@@ -181,32 +181,30 @@ Q. What is the difference between terraform taint and terraform import?
 -terraform import brings an existing infrastructure resource under Terraform management.
 
 🔁 1. terraform taint — Force Recreation of a Resource
-It marks a managed resource as tainted.
-On the next terraform apply, Terraform will destroy and recreate the resource.
-Useful if the resource is corrupted, misbehaving, or needs a clean rebuild.
+-It marks a managed resource as tainted.
+-On the next terraform apply, Terraform will destroy and recreate the resource.
+-Useful if the resource is corrupted, misbehaving, or needs a clean rebuild.
 
 Example:
-bash
 terraform taint aws_instance.my_ec2
 terraform apply
 ➡️ Terraform will destroy my_ec2 and create a new one from scratch.
 
 📥 2. terraform import — Bring Existing Resource into Terraform
-It associates a resource in your infrastructure with a Terraform resource block.
-This does not create anything—it only updates the Terraform state to track the existing resource.
-You still have to define the .tf configuration manually.
+-It associates a resource in your infrastructure with a Terraform resource block.
+-This does not create anything—it only updates the Terraform state to track the existing resource.
+-You still have to define the .tf configuration manually.
 
 Example:
-bash
 terraform import aws_instance.my_ec2 i-0abcd1234ef5678gh
 ➡️ After this, Terraform knows that aws_instance.my_ec2 corresponds to i-0abcd1234ef5678gh.
 
 🧠 Use Case Comparison:
-Feature			terraform taint					terraform import
-Purpose			Force re-creation of a managed resource		Manage existing resource with Terraform
-Modifies infra?		Yes (destroys and recreates on apply)		No (just updates state)
-Configuration needed?	Already exists in .tf file			Must be defined before/after importing
-Typical use case	Fix corrupted VM, restart fresh			Bring in manually created or legacy resource
+Feature			              terraform taint					                  terraform import
+Purpose			          Force re-creation of a managed resource		 Manage existing resource with Terraform
+Modifies infra?		    Yes (destroys and recreates on apply)		   No (just updates state)
+Configuration needed?	Already exists in .tf file			           Must be defined before/after importing
+Typical use case	    Fix corrupted VM, restart fresh			       Bring in manually created or legacy resource
 
 ✅ Summary (Wrap-up):
 In short, terraform taint is used to recreate a resource Terraform already manages, while terraform import is used to start managing a resource that Terraform didn’t originally create.
