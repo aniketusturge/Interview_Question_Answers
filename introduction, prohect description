@@ -1,0 +1,184 @@
+Thank you for giving me this opprtunity to introduce myself, my name is Aniket Usturge, and I have around 4+ years of experience as an AWS DevOps Engineer. Over the years, I have worked extensively on designing, automating, and managing cloud infrastructure and CI/CD pipelines.
+
+My primary expertise is in AWS services such as EC2, VPC, IAM, S3, ALB, Auto Scaling, CloudWatch, ECS, and EKS. I have hands-on experience in building and maintaining CI/CD pipelines using Jenkins and GitHub Actions for automated build, test, and deployment processes.
+
+I have worked on containerization using Docker and orchestration using Kubernetes, including deploying and managing microservices-based applications. I also have experience with Infrastructure as Code using Terraform, where I automated cloud resource provisioning and environment setup.
+
+For monitoring and observability, I have worked with Prometheus and Grafana to monitor infrastructure and application performance, create dashboards, and configure alerting mechanisms.
+
+In my recent projects, I was involved in implementing end-to-end DevOps automation, improving deployment reliability, reducing manual efforts, and enhancing system scalability and security.
+
+I am passionate about automation, cloud technologies, and continuously learning new DevOps tools and best practices. Currently, I am looking for an opportunity where I can contribute my AWS and DevOps skills while also growing technically.
+
+
+
+
+
+Hi, my name is [Your Name], and I have around 4+ years of experience as an AWS DevOps Engineer. Over the years, I have worked extensively on designing, automating, and managing cloud infrastructure and CI/CD pipelines.
+
+My primary expertise is in AWS cloud platform, for CI/CD i have worked on Jenkins as well as Github Actions, experienced in containersation using docker and container orchestation using kubernetes, i have hands on experience on terraform as an IAC tool , for monitoring and logging i used on prometheus and grafana.
+In this period i have worked on multiple domains like Healthcare and e-commerce, api intigration of merchant portals.
+
+
+
+
+
+In my recent project, I worked on a cloud-native Pooja Booking Application built using a microservices architecture. The application consisted of 8 backend microservices and 2 frontend portals — an Admin Portal and a User Portal.
+
+The frontend applications were developed using ReactJS, and the backend services were developed in NodeJS. Each microservice and frontend application had its own dedicated Git repository, so overall we managed multiple repositories with separate CI/CD pipelines for each service.
+
+For CI/CD automation, I implemented GitHub Actions pipelines. Whenever code was pushed to the development branch, the pipeline was triggered automatically.
+
+For backend services, the pipeline flow was designed as follows:
+
+First, the application code went through SonarQube analysis for code quality and security checks.
+After successful validation, the Docker image was built.
+Each image was tagged using the Git commit ID for proper version tracking and rollback support.
+The Docker image was then scanned using Trivy to identify vulnerabilities.
+After successful scanning, the image was digitally signed using Cosign for image authenticity and supply chain security.
+The signed image was pushed to Amazon ECR.
+Once the image was available in ECR, the pipeline automatically updated the ECS Task Definition with the new image version.
+A new ECS task definition revision was created, and then the ECS service was updated to deploy the latest version.
+
+For frontend applications, the pipeline process was slightly different:
+
+The ReactJS application was built through GitHub Actions.
+The generated build artifacts were uploaded to Amazon S3 buckets configured for static website hosting.
+After deployment, a CloudFront cache invalidation was triggered automatically so users could immediately access the latest frontend changes without stale cache issues.
+Route 53 was used for DNS management.
+
+The complete backend infrastructure was hosted on Amazon ECS. The frontend and backend communication was handled through CloudFront and Application Load Balancer (ALB), which provided secure and scalable routing.
+
+We also implemented several AWS services for storage, security, and scalability:
+
+Used Amazon S3 for storing application data and media files.
+Configured pre-signed URLs for secure upload and download operations.
+Created private S3 access URLs used securely within the application.
+Stored sensitive credentials and secrets in AWS Secrets Manager.
+Used PostgreSQL as the primary database.
+Implemented RabbitMQ for asynchronous communication between microservices.
+Configured AWS WAF to protect the application from common web attacks.
+
+For infrastructure optimization, the ECS task definitions for development and production environments were configured differently based on resource requirements. Additionally, to optimize AWS costs, the development ECS services were scheduled to run only during working hours and automatically stopped after office hours.
+
+Apart from CI/CD and deployment automation, I was also involved in infrastructure provisioning, monitoring, troubleshooting deployment issues, security improvements, and overall DevOps process enhancements for the project.
+
+
+
+
+
+
+Project description
+
+Project Name : Pooja Booking Application
+
+Purpose of the Project
+
+The main purpose of this project was to provide an online platform where users could book poojas and religious services digitally without visiting temples physically. The application allowed users to browse different poojas, select slots, make online payments, and manage bookings easily through a web portal.
+
+Key Features of the Project:
+User Portal and Admin Portal
+Online pooja booking and slot management
+Payment gateway integration for online payments
+Google Maps integration for location-based services
+Microservices-based architecture with 8 backend services
+Secure authentication and authorization
+File upload and storage using Amazon S3
+Notification and asynchronous communication using RabbitMQ
+Scalable deployment using AWS ECS
+CDN-based frontend delivery using CloudFront
+Monitoring and logging setup using Prometheus and Grafana
+
+
+Technologies Used
+Frontend: ReactJS
+Backend: NodeJS
+Cloud Platform: AWS
+CI/CD: GitHub Actions
+Containerization: Docker
+Container Orchestration: ECS
+Infrastructure as Code: Terraform
+Monitoring: Prometheus and Grafana
+Database: PostgreSQL
+Messaging Queue: RabbitMQ
+My Role in the Project
+
+Coming to my role in the project, I worked as an AWS DevOps Engineer in a team environment and was responsible for automating deployments, managing infrastructure, improving security, and supporting development teams.
+
+My responsibilities included:
+Creating and managing CI/CD pipelines using GitHub Actions
+Automating Docker image build and deployment processes
+Integrating SonarQube for code quality checks
+Implementing Trivy image scanning and Cosign image signing for container security
+Managing Amazon ECS deployments and task definition updates
+Configuring Amazon ECR repositories
+Deploying frontend applications to S3 and managing CloudFront invalidations
+Managing Route 53 DNS configurations
+Configuring AWS Secrets Manager for secure credential handling
+Setting up monitoring dashboards and alerts using Prometheus and Grafana
+Supporting developers during deployment and troubleshooting production issues
+Implementing cost optimization by scheduling development ECS services during working hours only
+Integrations Used in the Project
+Google Maps integration for location and address-related features
+Payment gateway integration for secure online transactions
+S3 pre-signed URL integration for secure file upload and download operations
+Learnings from the Project
+
+This project helped me improve both technically and professionally.
+
+Technical learnings:
+Hands-on experience with microservices deployment architecture
+Improved understanding of ECS, CI/CD automation, and cloud security
+Practical exposure to DevSecOps tools and container security practices
+
+Professional learnings:
+Team collaboration and communication
+Time management and handling multiple deployments
+Working in tightly time bound 
+Troubleshooting and incident handling under timelines
+Coordination with developers, QA, and management teams for smooth releases
+
+
+
+
+
+
+
+Strengths
+
+One of my biggest strengths is problem-solving and troubleshooting. In DevOps, production issues and deployment failures can happen anytime, so I stay calm and focus on identifying the root cause quickly. I enjoy debugging CI/CD pipelines, infrastructure issues, and container-related problems.
+
+Another strength is automation. I always look for ways to reduce manual work using tools like Terraform, GitHub Actions, Jenkins, and scripting. In my recent project, I automated deployments, security scans, ECS updates, and frontend cache invalidation, which improved deployment speed and reliability.
+
+I also have good knowledge of AWS cloud services and container technologies like Docker and Kubernetes, along with monitoring tools such as Prometheus and Grafana. I am comfortable working in fast-paced environments and collaborating with developers, testers, and operations teams.
+
+Weakness
+
+One weakness I noticed earlier in my career was that I used to spend too much time trying to perfect every implementation or troubleshooting task before closing it. 
+Over time, I learned the importance of balancing perfection with delivery timelines and business priorities.
+
+To improve this, I started focusing more on prioritization, better time management, and delivering stable solutions within deadlines while still maintaining quality standards.
+
+
+
+
+
+Where do you wana see yourself in 5 years
+
+In the next 5 years, I see myself growing into a senior DevOps or Cloud Architect role where I can take ownership of designing scalable, secure, and highly automated cloud infrastructure.
+
+I want to deepen my expertise in AWS, Kubernetes, Infrastructure as Code, and DevSecOps practices. 
+I'm also interested in working more on large-scale cloud architecture, automation strategies, monitoring, and reliability engineering.
+
+Apart from technical growth, I would like to mentor junior team members and contribute to improving DevOps processes and best practices within the organization.
+
+My goal is to continuously learn new technologies and become someone who can handle end-to-end cloud and DevOps solutions for complex production environments.
+
+
+
+
+
+
+hwo do you manage task
+- i priorotise my task on the basis of business impact.
+- 
