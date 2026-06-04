@@ -1,0 +1,95 @@
+
+
+
+kubectl explain pods/namespace/deployment/any_resource_name
+
+
+Pod commands
+
+kubectl run nginx --image nginx
+kubectl run nginx --image nginx --dry-run=client -o yaml > nginx.yaml
+kubectl create -f nginx.yaml
+kubectl replace --force -f nginx.yaml
+kubectl get pods
+kubectl get pods --watch
+kubectl get pods -o wide
+kubectl get pods --selector app=app1
+kubectl get pods --selector env=dev --no-headers | wc -l   get count of pods having label dev
+kubectl describe pod pod_name
+kubectl edit pod pod_name
+kubectl delete pod pod_name
+
+kubectl get all
+
+REPLICASET
+apiVersion: apps/v1
+kind: ReplicaSet
+
+kubectl create -f new-rs.yaml
+kubectl get rs/replicaset
+kubectl desribe rs rs_new
+kubectl edit rs rs_name
+kubectl replace -f new.yaml
+kubectl scale --replicas=3 -f rs_name
+kubectl delete rs rs_name
+kubectl explain replicaset
+
+
+DEPLOYMENT
+kubectl create deployment --image=nginx nginx
+kubectl create deployment --image=nginx nginx --dry-run=client -o yaml
+kubectl create deployment --image=nginx nginx --dry-run=client -o yaml > nginx-deployment.yaml
+kubectl create -f nginx-deployment.yaml
+kubectl get deploy
+kubectl set image deployment deploy_name nginx=nginx:1.1
+In k8s version 1.19+, we can specify the --replicas option to create a deployment with 4 replicas.
+kubectl create deployment --image=nginx nginx --replicas=4 --dry-run=client -o yaml > nginx-deployment.yaml
+
+
+
+SERVICE
+
+kubectl expose pod redis --port=6379 --name=redis-service --type=ClusterIP
+
+NAMESPACE
+kubectl create namespace ns_name
+kubectl create -f namespace.yml
+kubect get namespace/namespaces/ns
+kubectl get pods --namespace=dev
+kubectl get pods -n=dev
+kubectl config set-context $(kubectl config current-context) --namespace=dev
+kubectl get pods --all-namespaces
+kubectl get pods -A 
+db_service.dev.svc.cluster.local
+
+
+
+Taint and tolerations
+kubectl taint node node-name key=value:taint-effect
+kubectl taint node node1 app=blue:NoSchedule
+kubectl taint node node1 app=blue:NoSchedule-  :to remove taint
+kubectl describe node kubemaster | grep Taint
+kubectl describe node node01 | grep Taints
+
+Node Selector
+kubectl label node node1 label_key=label_value
+kubectl 
+
+Node Affinity
+kubectl label node node01 color=blue
+
+
+Labels and selector
+kubectl describe node node01
+kubectl get nodes --show-labels
+kubectl get pods --selector env=dev  
+kubectl get pods --selector env=dev --no-headers | wc -l   get count of pods having label dev
+
+
+
+
+kubectl top pod pod-name   - check pods cpu and memory utilisation
+
+
+
+
