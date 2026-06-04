@@ -1,0 +1,9 @@
+
+
+terraform init
+
+terraform plan 
+terraform plan -out=myplan
+terraform show myplan        shows Resources to be created,Modified resources,Destroyed resources,Attribute changes
+terraform show -json myplan     :-SHOWS OUTPUT IN JSON FORMAT
+terraform show myplan > plan-output.txt  Save Output to File
