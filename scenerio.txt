@@ -1,0 +1,12 @@
+jenkins is setup in private gitlab is in public so cancnot webhook.
+
+changes are not reflcting into new build , cache delete
+
+
+
+Githhub actions ssecret manager, environment.
+
+s3 bucket cors.
+
+trivy vulnaribitlites. dependabot and 
+

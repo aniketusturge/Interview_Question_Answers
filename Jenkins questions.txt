@@ -342,10 +342,10 @@ stage('Parallel Tasks') {
     }
 }
 ✅ Best Practices
-Practice	                                Reason
+Practice	                                      Reason
 Label your parallel branches clearly	        Easy tracking in Jenkins UI
 Use failFast: true (in Scripted Pipeline)       Stops other branches if one fails
-Ensure isolation (no shared files)	        Avoids race conditions
+Ensure isolation (no shared files)	            Avoids race conditions
 Use different agents or containers if needed	Prevents resource contention
 
 🧪 Real-World Example: Parallel Testing on Multiple OS
@@ -452,7 +452,7 @@ These require:
 -Webhooks and API integrations
 
 🛡️ Best Practices
-Tip								Reason
+         Tip								            Reason
 Use input in a separate stage					Easier to view & manage in UI
 Protect the Jenkins job with RBAC				Prevent unauthorized approvals
 Include logs and deployment details in approval message	        Helps approvers make informed decisions
@@ -514,7 +514,9 @@ For example, in one of my recent projects, we had a mono-repo structure for Terr
 
  Q. How do you trigger a pipeline based on a Git tag push instead of a branch commit?
 
-"To trigger a Jenkins pipeline on a Git tag push, I configure the pipeline to detect refs/tags/** and ensure tag discovery is enabled if using a Multibranch Pipeline. For declarative pipelines, I use when conditions and environment variables like GIT_TAG_NAME to differentiate tag builds. I also integrate GitHub/GitLab webhooks to trigger the pipeline immediately on tag creation, avoiding polling delays."
+"To trigger a Jenkins pipeline on a Git tag push, I configure the pipeline to detect refs/tags/** and ensure tag discovery is enabled if using a Multibranch Pipeline. 
+For declarative pipelines, I use when conditions and environment variables like GIT_TAG_NAME to differentiate tag builds. 
+I also integrate GitHub/GitLab webhooks to trigger the pipeline immediately on tag creation, avoiding polling delays."
 
 
 ---------------------------------------------------------
@@ -643,7 +645,8 @@ I regularly audit, rotate, and securely manage credentials using tools like Vaul
 ---------------------------------------------------------
 
 Q. What is your approach to shift-left testing in a DevOps pipeline?
-My approach to shift-left testing is to integrate testing as early and as frequently as possible in the DevOps pipeline—right from the time code is written. This helps catch issues earlier, reduce feedback loops, and improve overall code quality and deployment confidence.
+My approach to shift-left testing is to integrate testing as early and as frequently as possible in the DevOps pipeline—right from the time code is written. 
+This helps catch issues earlier, reduce feedback loops, and improve overall code quality and deployment confidence.
 
 🛠️ 1. Automate Tests at the Earliest Stage
 I embed unit tests, linting, and static code analysis in the build stage of the CI pipeline:

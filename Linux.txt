@@ -68,6 +68,162 @@ Automate log rotation & cleanup with cron jobs or Ansible.
 
 ------------------------------------------------------------
 
+Differnece between Softlink and hardlink
+
+Feature	                Soft Link (Symbolic Link)	            Hard Link
+Definition	            A pointer to another file's path	    Another name for the same inode (file)
+Inode Number	        Different inode from original file	    Same inode as original file
+File System	            Can link across different file systems	Cannot link across file systems
+Directories	            Can link directories	                Usually cannot link directories
+Original File Deleted	Link becomes broken (dangling link)	    File still accessible through hard link
+Size	                Small file containing path information	Same as original file
+Permissions	            Independent link permissions, 
+                        but target permissions apply	        Same file permissions as original
+
+Soft Link (Symbolic Link)
+Creates a shortcut to the original file.
+
+Create Soft Link
+ln -s source_file softlink_name
+
+Example:
+touch file1.txt
+ln -s file1.txt softlink.txt
+
+Check:
+
+ls -l
+
+Output:
+lrwxrwxrwx 1 user user 9 Jan 1 10:00 softlink.txt -> file1.txt
+
+Notice the l at the beginning and the arrow (->).
+
+Inode Check
+ls -i file1.txt softlink.txt
+
+Output:
+12345 file1.txt
+67890 softlink.txt
+
+Different inode numbers.
+
+If Original File is Deleted
+rm file1.txt
+cat softlink.txt
+
+Output:
+No such file or directory
+
+The soft link becomes broken.
+
+Hard Link
+Creates another filename pointing to the same inode.
+
+Create Hard Link
+ln source_file hardlink_name
+
+Example:
+touch file1.txt
+ln file1.txt hardlink.txt
+
+Inode Check
+ls -i file1.txt hardlink.txt
+
+Output:
+12345 file1.txt
+12345 hardlink.txt
+
+Same inode number.
+If Original File is Deleted
+rm file1.txt
+cat hardlink.txt
+
+Output:
+File is still accessible because the inode still exists through hardlink.txt.
+
+Real Interview Explanation
+
+Soft Link
+-Similar to a Windows shortcut.
+-Stores the path of the target file.
+-If the target file is deleted, the link breaks.
+
+Hard Link
+-Another name for the same file.
+-Both names point to the same inode.
+-Even if one filename is deleted, the file remains accessible through the other link.
+
+
+A soft link is a symbolic pointer that stores the path of another file and can cross file systems. 
+If the original file is deleted, the soft link becomes invalid. 
+A hard link is another directory entry pointing to the same inode as the original file. 
+Both share the same inode number, and even if the original filename is deleted, the file remains accessible through the hard link.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 killerkoda labs 
 
 Check all the kernel information.
@@ -156,6 +312,14 @@ ss -ntulp | grep containerd
 
 
 
+
+diff between grep , awk, sed
+how to check which process taking cpu 
+how does cron work, everyweek day
+what is 755 , what 
+difference between df-h du -h
+softlink hardlink
+how to check 
 
 
 

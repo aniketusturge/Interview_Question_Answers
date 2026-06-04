@@ -214,9 +214,11 @@ In short, terraform taint is used to recreate a resource Terraform already manag
 
 How do you organize Terraform code for a multi-environment setup (dev/stage/prod)?
 
-For a multi-environment setup in Terraform, I organize the code using a modular structure with separate configurations for each environment—like dev, stage, and prod. This promotes code reusability, environment isolation, and clear separation of concerns.
+For a multi-environment setup in Terraform, I organize the code using a modular structure with separate configurations for each environment—like dev, stage, and prod. 
+This promotes code reusability, environment isolation, and clear separation of concerns.
 
-So, I structure Terraform using modules for reusable code, and separate folders or workspaces per environment, each with its own state and configuration. This ensures environment isolation, easy promotion from dev to prod, and simplifies collaboration.
+So, I structure Terraform using modules for reusable code, and separate folders or workspaces per environment, each with its own state and configuration.
+This ensures environment isolation, easy promotion from dev to prod, and simplifies collaboration.
 
 ---------------------------------------------------------
 
@@ -544,7 +546,9 @@ Here:
       ✅ Helps make configurations dynamic and reusable.
 
 ✅ Interview-ready answer:
-“A data block in Terraform is used to fetch information about existing resources or external data without creating them. For example, we can use data "aws_ami" to dynamically fetch the latest AMI ID instead of hardcoding it. Unlike a resource block, which manages infrastructure, a data block is read-only.”
+“A data block in Terraform is used to fetch information about existing resources or external data without creating them. 
+For example, we can use data "aws_ami" to dynamically fetch the latest AMI ID instead of hardcoding it. 
+Unlike a resource block, which manages infrastructure, a data block is read-only.”
 
 -------------------------------------------------------
 

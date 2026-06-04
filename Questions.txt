@@ -77,3 +77,243 @@ How would you recover a cluster if the etcd database gets corrupted?
 You upgraded Kubernetes from v1.26 to v1.28 and some workloads broke. How do you roll back safely?
 
 How do you handle a situation where an entire Availability Zone goes down in an EKS/GKE/AKS cluster?
+
+
+
+
+1. How you configure Jenkins pipeline for smooth deployment
+
+
+2. Role of Jenkinsfile
+
+
+3. What is agent
+
+
+4. How you will secure Jenkins pipeline
+
+
+5. Blue green deployment
+
+
+6. Canary deployment
+
+
+7. How to create multibranch pipeline in Jenkins
+
+
+8. HashiCorp Vault vs AWS Secrets Manager
+
+
+9. Difference between Docker image and container
+
+
+10. Is image a static template?
+
+
+11. Purpose of Dockerfile
+
+
+12. What is Docker Compose
+
+
+13. Docker Swarm vs Kubernetes
+
+
+14. Can we persist Docker container and how?
+
+
+15. How you will secure containers?
+
+
+16. What is pod
+
+
+17. How you do Kubernetes deployment
+
+
+18. What is ConfigMap
+
+
+19. Ingress controller
+
+
+20. What types of monitoring you have done
+
+
+21. What kind of metrics you covered
+
+
+22. DevOps methodologies to implement any project
+
+
+23. What is Git merge issue
+
+
+24. Git reset vs revert
+
+
+25. Git rebase vs stash
+
+
+26. Explain CI/CD from scratch
+
+
+27. What are upstream and downstream jobs
+
+
+28. What is Dockerfile and instructions inside it
+
+
+29. Can we create image without Dockerfile
+
+
+30. Terraform script to provision EC2 with different configurations
+
+
+31. Can we use best practices in Terraform
+
+
+32. Can we use variables instead of multiple EC2 blocks
+
+
+33. Configure VPC using Terraform
+
+
+34. Dockerfile to configure Nginx webserver
+
+
+35. Meaning of daemon off and -g in Nginx
+
+
+36. Troubleshooting Docker container crashing
+
+
+37. What is docker inspect
+
+
+38. Kubernetes architecture explanation
+
+
+39. What is ReplicaSet
+
+
+40. Liveness and Readiness probes
+
+
+41. Types of services in Kubernetes
+
+
+42. Pod crashing troubleshooting
+
+
+43. Troubleshooting multiple pod crashes for past one month without monitoring tools
+
+
+44. From where will you get one-month-old troubleshooting information
+
+
+45. What is IAM User and IAM Role
+
+
+46. What is CloudFront and CloudFormation
+
+
+47. What is Auto Scaling, Min, Max, Desired capacity
+
+
+48. How to integrate metrics with Prometheus
+
+
+49. Terraform state file
+
+
+50. Ansible roles
+
+
+51. Handlers in Ansible
+
+
+52. What is your biggest achievement
+
+
+1. What should be done to run a certain code snippet ‘x’ as the last step inside a Jenkinsfile declarative pipeline?
+
+
+2. You wrote a Jenkins deploy script to deploy your project to the application server. How will Jenkins handle SSH access and deployment permissions?
+
+
+3. What approach can you use to create a highly available, resilient Jenkins architecture?
+
+
+4. String Manipulation: Count substrings with length >1 having same start and end character.
+
+
+5. Six cars participate in a race. In how many ways can first, second, and third places be awarded?
+
+
+6. Venn diagram question (two overlapping circles + one separate circle).
+
+
+7. How many pairs are identical?
+
+
+8. Number puzzle:
+
+6518 → 20 → 2
+
+6417 → 18 → 9
+
+6316 → 16 → ?
+
+
+
+9. Number diagram puzzle:
+
+15, 9 → 65, 70
+
+12, 6 → 26, 46
+
+9, 8 → 11, ?
+
+
+
+10. AWS CloudFormation:
+
+Which property enables SSE-S3 encryption for an S3 bucket?
+
+
+
+11. AWS CloudFormation:
+
+Which feature helps preview changes and avoid downtime/data loss while updating resources?
+
+
+
+12. AWS CloudFormation + CodePipeline:
+
+Which AWS CLI command correctly deploys the required resources using CloudFormation?
+
+
+
+13. Serverless architecture question:
+
+Which AWS platform helps design serverless architecture without extensive expertise?
+
+
+
+14. CloudFormation YAML versioning question:
+
+Which YAML snippet correctly enables S3 bucket versioning?
+
+
+
+15. CloudFormation Chef integration question:
+
+Statement about CloudFormation support for Chef configuration management.
+
+
+
+16. CloudFormation template question:
+
+From which section are values like InstanceType and KeyName referenced using Ref?

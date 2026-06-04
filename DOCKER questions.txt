@@ -343,11 +343,11 @@ docker run -d -p 8080:80 nginx
 -Accessible publicly at http://<host-ip>:8080.
 
 🔹 Key Difference
-Feature		EXPOSE (Dockerfile)					Publish (-p) (docker run)
-Purpose		Documentation / metadata				Actual networking (port binding)
+Feature		   EXPOSE (Dockerfile)					Publish (-p) (docker run)
+Purpose		   Documentation / metadata				Actual networking (port binding)
 Accessibility	Internal (other containers on same network can see)	External (reachable from host or internet)
-Effect		Doesn’t open port					Opens port on host machine
-Example	EXPOSE 80 in Dockerfile	docker run -p 8080:80
+Effect		   Doesn’t open port					Opens port on host machine
+Example	      EXPOSE 80 in Dockerfile	      docker run -p 8080:80
 
 ✅ Interview-ready one-liner:
 “EXPOSE is just documentation in the Dockerfile that a container listens on a port, but it doesn’t actually open it. To make a port accessible externally, you must publish it with -p when running the container.”
@@ -672,8 +672,10 @@ docker run -d --name app --network mynetwork redis
 👉 In user-defined bridge networks, containers can communicate using container names (via built-in DNS).
 
 🧠 Interview-Ready Summary
-
-“By default, Docker attaches containers to the bridge network unless another network is specified. The bridge network provides private IPs and NAT for outbound internet access. Docker also creates two other default networks — host (which shares the host network stack) and none (which disables networking). For multi-container apps, we typically create user-defined bridge networks for better DNS-based communication.”
+“By default, Docker attaches containers to the bridge network unless another network is specified. 
+The bridge network provides private IPs and NAT for outbound internet access. 
+Docker also creates two other default networks — host (which shares the host network stack) and none (which disables networking). 
+For multi-container apps, we typically create user-defined bridge networks for better DNS-based communication.”
 
 
 ------------------------------------
@@ -715,10 +717,10 @@ Extra Features (vs COPY):
 (though this is generally discouraged — use curl or wget inside RUN instead for clarity and caching control).
 
 ⚖️ Best Practices
-Use Case					Recommended Command
-Copy local files or directories			✅ COPY
-Automatically extract local .tar archives	ADD
-Download remote files (rarely needed)		Prefer RUN curl or RUN wget instead of ADD
+Use Case					                        Recommended Command
+Copy local files or directories			      ✅ COPY
+Automatically extract local .tar archives	   ADD
+Download remote files (rarely needed)		   Prefer RUN curl or RUN wget instead of ADD
 🔍 Example Comparison
 # Using COPY
 COPY requirements.txt /app/
@@ -728,11 +730,11 @@ RUN pip install -r /app/requirements.txt
 ADD app.tar.gz /app/
 
 ✅ Summary
-Feature				COPY	ADD
-Copies local files		✅	✅
-Extracts tar archives		❌	✅
-Accepts URLs			❌	✅
-Recommended for general use	✅	❌ (use only when needed)
+Feature				      COPY	      ADD
+Copies local files		✅	         ✅
+Extracts tar archives	❌	         ✅
+Accepts URLs			   ❌	         ✅
+Recommended for general use	✅	   ❌ (use only when needed)
 
 
 ------------------------------------
@@ -750,7 +752,7 @@ docker run nginx
 
 Docker CLI  →  dockerd  →  containerd  →  runc  →  Linux kernel (namespaces, cgroups)
 
-🔹 1️⃣ dockerd — Docker Daemon
+1️⃣ dockerd — Docker Daemon
 Role: The main Docker engine process that provides the high-level API and orchestration.
 
 Details:
@@ -760,9 +762,9 @@ Details:
 -Delegates actual container management work to containerd.
 
 In short:
-🧠 Think of dockerd as the manager — it interprets user commands and delegates tasks.
+Think of dockerd as the manager — it interprets user commands and delegates tasks.
 
-🔹 2️⃣ containerd — Container Runtime (High-Level)
+2️⃣ containerd — Container Runtime (High-Level)
 Role: Handles the lifecycle of containers (start, stop, pause, delete, etc.) at a lower level than dockerd.
 
 Details:
@@ -774,7 +776,7 @@ Details:
 In short:
 ⚙️ containerd is the worker that manages containers once dockerd tells it what to do.
 
-🔹 3️⃣ runc — OCI Runtime (Low-Level)
+3️⃣ runc — OCI Runtime (Low-Level)
 Role: Actually creates and runs containers using Linux kernel features.
 Details:
 -Implements the OCI (Open Container Initiative) runtime spec.
@@ -797,10 +799,10 @@ docker run nginx
 -The container is now running! 🐳
 
 🧩 Summary Table
-Component	Role			Level		Example Responsibility
-dockerd		Docker daemon		High-level	Builds images, manages containers, networks
-containerd	Container manager	Mid-level	Pulls images, starts/stops containers
-runc		Runtime			Low-level	Actually runs containers using kernel features
+Component	   Role			      Level		   Example Responsibility
+dockerd		Docker daemon		 High-level  Builds images, manages containers, networks
+containerd	Container manager	 Mid-level	 Pulls images, starts/stops containers
+runc		   Runtime			    Low-level	 Actually runs containers using kernel features
 ⚙️ Visual Diagram
 +----------------------------+
 | Docker CLI / API           |
@@ -904,15 +906,15 @@ When you stop or exit the container:
 -If --rm was used, the container filesystem is deleted.
 
 🧠 In summary
-Step	Component	Responsibility
-1	Docker CLI	Sends docker run command
-2	dockerd		Parses command, orchestrates the process
-3	Image Registry	Provides image if not local
-4	Storage Driver	Builds layered filesystem
-5	Networking	Sets up container network
-6	containerd	Manages container lifecycle
-7	runc		Creates and runs container process
-8	Kernel		Enforces isolation via namespaces & cgroups
+Step	Component	      Responsibility
+1	   Docker CLI	      Sends docker run command
+2	   dockerd		      Parses command, orchestrates the process
+3	   Image Registry	   Provides image if not local
+4	   Storage Driver	   Builds layered filesystem
+5	   Networking	      Sets up container network
+6	   containerd	      Manages container lifecycle
+7	   runc		         Creates and runs container process
+8	   Kernel		      Enforces isolation via namespaces & cgroups
 🧩 Visual Summary
 docker run nginx
    ↓
@@ -933,7 +935,6 @@ Nginx process running inside isolated container
 
 How does Docker isolate processes from the host OS?
 
-
 🧩 1️⃣ Core Idea
 
 A Docker container isn’t a full virtual machine.
@@ -952,13 +953,13 @@ Union Filesystems (UnionFS)	Provide filesystem isolation (each container has its
 
 Here are the main ones Docker uses 👇
 
-Namespace  Command-line flag	What it isolates	Example
-PID	  --pid	    Process IDs	Container sees only its own processes; ps aux inside container won’t show host processes
-NET	  --net	 Network stack	Container has its own IP, interfaces, routing tables
-MNT	  --mount	Filesystem mount points	Container sees its own /, independent of the host
-UTS	  --uts	Hostname and domain	Container can have its own hostname
-IPC	  --ipc	Shared memory, message queues	Containers can’t see or interfere with host’s IPC
-USER	  --user	User and group IDs	Containers can map container root → non-root host user for security
+Namespace  Command-line flag	  What it isolates	       Example
+PID	       --pid	           Process IDs	            Container sees only its own processes; ps aux inside container won’t show host processes
+NET	         --net	           Network stack	         Container has its own IP, interfaces, routing tables
+MNT	         --mount	        Filesystem mount points	Container sees its own /, independent of the host
+UTS	         --uts	           Hostname and domain	   Container can have its own hostname
+IPC	         --ipc	           Shared memory,message queues	Containers can’t see or interfere with host’s IPC
+USER	         --user	        User and group IDs	      Containers can map container root → non-root host user for security
 
 🧠 Example:
 When runc starts a container, it calls clone() or unshare() system calls to create new namespaces for the process.
@@ -1037,11 +1038,11 @@ When Docker runs a container, it leverages specific Linux namespaces for differe
 
 
 🧩 Namespaces used by Docker
-Function / Resource	Namespace Name	Kernel Flag	Purpose
-Networking	net	CLONE_NEWNET	Isolates network interfaces, IP addresses, routing tables, ports, etc. Each container has its own network stack.
-Process IDs (PID)	pid	CLONE_NEWPID	Gives each container its own process tree — processes in one container can’t see or signal those in another.
-Mounts (Filesystem)	mnt	CLONE_NEWNS	Isolates the filesystem mount points, so each container can have its own root filesystem (/).
-UTS (Hostname and Domain)	uts	CLONE_NEWUTS	Allows containers to have their own hostname and domain name, independent of the host.
+Function / Resource	Namespace Name	 Kernel Flag	Purpose
+Networking	          net	          CLONE_NEWNET	Isolates network interfaces, IP addresses, routing tables, ports, etc. Each container has its own network stack.
+Process IDs (PID)	     pid	          CLONE_NEWPID	Gives each container its own process tree — processes in one container can’t see or signal those in another.
+Mounts (Filesystem)	  mnt	          CLONE_NEWNS	Isolates the filesystem mount points, so each container can have its own root filesystem (/).
+UTS (Hostname and Domain)	uts	    CLONE_NEWUTS	Allows containers to have their own hostname and domain name, independent of the host.
 🧠 Quick Explanation of Each
 🕸️ 1️⃣ Network Namespace (net)
 Provides each container its own network stack:
@@ -1094,12 +1095,13 @@ User	user	UID/GID mappings	id
 What’s the difference between Docker image layers and containers? How does Docker handle layer caching?
 
 Docker Image vs. Container — Key Difference
-Concept	       Docker Image											        Docker Container
-Definition    A read-only template that contains all the instructions to create a container (OS, libraries, app code).	A runtime instance of an image — a running process with a writable layer.
-State	     Immutable (cannot change once built).									Mutable (can change state while running).
-Storage	     Stored in /var/lib/docker/image/...	                                                                Stored in /var/lib/docker/containers/...
-Purpose	     Blueprint used to create containers.	                                                                Actual execution environment for the application.
-Example Command	docker build -t app .	                                                                                docker run app
+Concept	       Docker Image											               Docker Container
+Definition    A read-only template that contains all the instructions      A runtime instance of an image — a running process with a writable layer.
+             instructions to create a container (OS, libraries, app code).	
+State	            Immutable (cannot change once built).							Mutable (can change state while running).
+Storage	         Stored in /var/lib/docker/image/...	                     Stored in /var/lib/docker/containers/...
+Purpose	         Blueprint used to create containers.	                  Actual execution environment for the application.
+Example Command	docker build -t app .	                                 docker run app
 
 🧩 Analogy:
 🖼️ Image → a recipe
@@ -1117,11 +1119,11 @@ CMD ["python3", "/app/app.py"]
 
 This creates layers like:
 
-Layer	Created By	             Description
-1	FROM ubuntu:22.04	         Base image layer (read-only)
-2	RUN apt-get update ...	         Package installation layer
-3	COPY app.py /app/	             Adds your application file
-4	CMD ["python3", "/app/app.py"]	 Metadata (entrypoint)
+Layer	Created By	                    Description
+1	FROM ubuntu:22.04	              Base image layer (read-only)
+2	RUN apt-get update ...	        Package installation layer
+3	COPY app.py /app/	              Adds your application file
+4	CMD ["python3", "/app/app.py"]  Metadata (entrypoint)
 
 Each layer is stored separately as a read-only filesystem snapshot, and Docker stacks them to create the final image.
 
@@ -1204,7 +1206,7 @@ Host OS kernel
 -⚡ Layer caching = Docker reuses unchanged layers to make builds fast and efficient
 
 -------------------------------------------------
-Q. if image building is slower how to troubleshoot it
+If image building is slower how to troubleshoot it
 
 🧭 Step 1: Identify which layer is slow
 
@@ -1451,15 +1453,48 @@ Docker layer caching reuses unchanged image layers to avoid rebuilding them, mak
 
 
 -------------------------------------------------
+How to create image from running container
+
+To take a snapshot of a running Docker container, you use:
+
+docker commit
+
+This creates a new Docker image from the current state of the container.
+
+✅ Syntax
+docker commit <container_id_or_name> <new_image_name>:<tag>
+
+Example:
+docker commit 4f2d3c1a ubuntu-nginx:v1 
+
+
+-------------------------------------------------
+
+Q.How to transfer image from one server to another
+
+docker save -o snapshot.tar ubuntu-nginx:v1
+
+Transfer to another server:
+scp snapshot.tar user@server:/tmp
+
+Load:
+docker load -i snapshot.tar
 
 
 
+-------------------------------------------------
+Q. Difference Between p and P in docker
+
+
+-------------------------------------------------
 
 
 
 -------------------------------------------------
 
 
+
+-------------------------------------------------
 
 
 
