@@ -1,0 +1,903 @@
+Cloud Infrastructure & DevOps Interview Q&A
+Terraform & Infrastructure as Code
+Q1: What is Terraform and how have you used it in your projects?
+A: Terraform is an open-source Infrastructure as Code tool by HashiCorp that lets you define and provision cloud infrastructure using declarative configuration files. In my work, I've used Terraform to provision AWS resources like EC2 instances, VPCs, S3 buckets, and IAM roles. I maintain reusable modules, manage state files in S3 with DynamoDB locking, and integrate Terraform plans into CI/CD pipelines for automated deployments.
+
+Q2: What is Terraform state and why is it important?
+A: Terraform state is a file (terraform.tfstate) that maps your configuration to real-world resources. It tracks what infrastructure exists so Terraform knows what to create, update, or destroy. In team environments, we store state remotely — typically in S3 with state locking via DynamoDB — to prevent concurrent modifications and ensure consistency across team members.
+
+Q3: How do you handle Terraform drift?
+A: Terraform drift happens when real infrastructure diverges from the state file, usually due to manual changes. I handle it by running terraform plan regularly to detect differences, using terraform refresh to sync state with reality, and enforcing a policy that all changes go through Terraform — no manual console edits in production. For larger environments I've also used tools like Atlantis for automated plan/apply workflows.
+
+AWS Cloud Services
+Q4: Walk me through how you would secure an S3 bucket in AWS.
+A: I would: block all public access using the S3 Block Public Access setting, enforce bucket policies to allow only specific IAM roles or services, enable server-side encryption (SSE-S3 or SSE-KMS), enable versioning and MFA Delete for critical data, turn on S3 access logging and CloudTrail for auditing, and use VPC endpoints so traffic doesn't traverse the public internet.
+
+Q5: How do you manage IAM security in AWS?
+A: I follow the principle of least privilege — users and roles get only the permissions they need. I use IAM roles for EC2 and Lambda instead of long-term access keys, enforce MFA for all human users, regularly audit permissions using IAM Access Analyzer and AWS Trusted Advisor, rotate credentials on a schedule, and avoid using the root account for day-to-day operations.
+
+Q6: How would you troubleshoot an EC2 instance that is unreachable?
+A: I follow a layered approach — first check if the instance is in a running state in the console, then review Security Group inbound rules and Network ACLs for the relevant port. Next I check the route tables and whether the subnet has an internet/NAT gateway. I'd review the instance's system log and EC2 serial console output for boot errors, verify the key pair, and check if the SSM agent is running as an alternative access method if SSH is blocked.
+
+Cloud Security & Vulnerability Remediation
+Q7: How do you approach VM vulnerability remediation in a cloud environment?
+A: I start by triaging findings from a scanning tool like AWS Inspector or Qualys by severity — Critical and High first. For each finding I identify the affected resource, check if a patch is available, test in a non-prod environment, and apply via automated patching (SSM Patch Manager for AWS) or by rebuilding the instance from a hardened AMI. I track remediation SLAs, document the fix, and verify re-scan results to confirm closure.
+
+Q8: What common cloud misconfigurations have you worked on remediating?
+A: Common ones I've dealt with include: publicly exposed S3 buckets, overly permissive security groups (0.0.0.0/0 on port 22 or 3389), IAM users with admin policies attached directly, unencrypted EBS volumes or RDS snapshots, CloudTrail or logging disabled in regions, and EC2 instances running in public subnets without any need for it. I use AWS Config rules and Security Hub to continuously detect and alert on these.
+
+CI/CD & Automation
+Q9: Describe your experience with CI/CD pipelines for infrastructure.
+A: I've worked with tools like GitHub Actions, Jenkins, and GitLab CI to automate Terraform workflows. A typical pipeline runs terraform fmt and terraform validate on every PR, then terraform plan for review, and terraform apply after approval on merge to main. For application deployments I've set up pipelines that build Docker images, push to ECR, and deploy to ECS or Kubernetes using rolling updates.
+
+Q10: How have you used Python for cloud automation?
+A: I've written Python scripts using Boto3 to automate tasks like stopping idle EC2 instances on a schedule, cleaning up unattached EBS volumes, sending SNS alerts when S3 bucket policies change, and generating cost reports from Cost Explorer. I've also written Lambda functions triggered by CloudWatch Events for automated remediation — like auto-revoking overly permissive security group rules.
+
+GCP
+Q11: What is your experience with GCP, and how does it compare to AWS?
+A: My primary experience is in AWS, with basic exposure to GCP. Key parallels are: EC2 ↔ Compute Engine, S3 ↔ Cloud Storage, IAM works similarly though GCP uses a resource hierarchy with Org → Folder → Project. GCP's BigQuery is a standout service with no direct AWS equivalent in simplicity. I've worked with GCP for deploying VMs, managing GCS buckets, and setting up basic IAM roles and service accounts.
+
+Incident Response & Operations
+Q12: How do you handle a cloud security incident, for example an IAM key being exposed?
+A: Immediately deactivate and delete the exposed key to stop further use. Then review CloudTrail logs to identify all API calls made with that key — look for unusual regions, services, or resource creation. Assess blast radius: were any resources created, data accessed, or permissions escalated? Notify the security team and follow the incident response runbook. Post-incident, enforce secrets scanning in CI/CD, move to IAM roles instead of keys, and document the timeline and remediation steps.
+
+Behavioral / Situational
+Q13: Describe a time you had to troubleshoot a complex infrastructure issue under pressure.
+A: (Tailor to your experience — here's a strong structure)
+In a previous role, a production deployment caused intermittent 502 errors. Under pressure, I first checked ALB target group health and found instances were failing health checks. I traced it to a Terraform change that updated the security group and inadvertently removed the rule allowing the ALB to reach the app port. I rolled back the security group change via Terraform, verified health checks recovered, and then re-applied the change correctly with the right port rule. I added a checklist to our PR template to explicitly review security group changes going forward.
+
+Q14: How do you keep up with cloud security and DevOps best practices?
+A: I follow AWS and GCP official blogs, read security advisories from sources like the CVE database and Cloud Security Alliance, take hands-on labs on platforms like A Cloud Guru or Terraform's own learning portal, participate in communities like r/devops and CNCF Slack, and pursue certifications — I hold / am pursuing AWS Solutions Architect and AWS Security Specialty.
+
+These cover the full breadth of the JD. Want me to add scenario-based or deeper technical questions for any specific area?You said: give me scenerio based question and answersgive me scenerio based question and answersJun 9Claude responded: Here are scenario-based questions and answers covering the full JD:Here are scenario-based questions and answers covering the full JD:
+
+Scenario-Based Interview Q&A
+Terraform & Infrastructure as Code
+Scenario 1: Terraform State Corruption
+
+"You run terraform apply and get an error saying the state file is locked or corrupted. Your team needs the deployment done urgently. What do you do?"
+
+A:
+First, I check if another pipeline or team member has a legitimate lock on the state — I'd look at the DynamoDB lock table for the lock entry and confirm with the team. If it's a stale lock from a crashed process, I use terraform force-unlock <lock-id> after confirming no active apply is running.
+If the state file itself is corrupted, I:
+
+Restore the last known good state from S3 versioning
+Run terraform plan to verify it matches real infrastructure
+If there's drift, use terraform import to re-import any missing resources
+
+Going forward I'd ensure the pipeline always cleans up locks on failure and that S3 versioning is enabled on the state bucket.
+
+Scenario 2: Accidental Resource Deletion
+
+"A junior engineer ran terraform destroy in the wrong workspace and deleted production RDS instances. How do you respond?"
+
+A:
+Immediate actions:
+
+Declare an incident and notify the on-call team and stakeholders
+Check if automated RDS snapshots or point-in-time recovery is available — restore from the latest snapshot immediately
+Check if read replicas exist that can be promoted temporarily
+
+Recovery:
+
+Restore the RDS instance from snapshot to minimize data loss
+Re-run terraform apply to reconcile the rest of the infrastructure state
+Verify application connectivity post-restore
+
+Post-incident:
+
+Add workspace confirmation prompts or restrict destroy in production via Sentinel policies (Terraform Cloud) or pipeline approval gates
+Enforce separate AWS accounts for prod vs non-prod to prevent cross-environment mistakes
+Document the incident with a full timeline and corrective actions
+
+
+Scenario 3: Terraform Plan Shows Unexpected Changes
+
+"You open a PR and the Terraform plan shows it will destroy and recreate a production EC2 instance you didn't intend to touch. What do you do?"
+
+A:
+I would not merge or apply until I understand why. My steps:
+
+Review the diff carefully — check if a force_new argument like ami, instance_type, or availability_zone changed
+Compare the current state (terraform show) with the config to find what triggered the replacement
+If it's a legitimate change that shouldn't cause recreation, I check if I can use lifecycle { prevent_destroy = true } or adjust the argument to avoid replacement
+If recreation is unavoidable but risky, I plan a maintenance window, take an AMI snapshot beforehand, and communicate with the app team
+If the change was unintentional, I revert the config and re-run the plan to confirm it's clean before merging
+
+
+AWS Security & Vulnerability Remediation
+Scenario 4: AWS Inspector Flags Critical Vulnerabilities
+
+"AWS Inspector surfaces 200+ critical CVEs across your EC2 fleet on a Monday morning. Your manager wants them all fixed by end of week. How do you prioritize and approach this?"
+
+A:
+I wouldn't try to patch everything blindly — I'd triage smartly:
+Step 1 — Prioritize by risk:
+
+Filter by CVSS score 9.0+ and those with known exploits (EPSS score)
+Focus on internet-facing or production instances first
+Group findings by CVE ID — one patch may fix hundreds of findings
+
+Step 2 — Categorize the fix type:
+
+OS-level patches → use SSM Patch Manager to push patches fleet-wide
+Application-level vulnerabilities → coordinate with app owners
+Findings tied to EOL software → flag for longer-term remediation with a risk acceptance
+
+Step 3 — Automate where possible:
+
+Create an SSM Patch baseline targeting Critical patches and run a Patch Now job
+For immutable infrastructure, build a new hardened AMI and roll it out via ASG instance refresh
+
+Step 4 — Track and report:
+
+Export findings to a spreadsheet or ticketing system with owner and due date
+Re-run Inspector after patching to verify closure
+Present a remediation dashboard to the manager showing progress by severity
+
+
+Scenario 5: Publicly Exposed S3 Bucket Discovered
+
+"A security scan alerts you that an S3 bucket containing customer data is publicly accessible. What are your immediate steps?"
+
+A:
+Contain first:
+
+Immediately enable S3 Block Public Access on the bucket via console or CLI — this overrides any ACL or bucket policy allowing public access
+Verify no active public-facing application depends on this bucket being open
+
+Investigate:
+3. Check CloudTrail to see who made the bucket public, when, and from where
+4. Review S3 server access logs to determine if any unauthorized party accessed the data
+5. Identify what data was in the bucket and its sensitivity level
+Remediate:
+6. Review and tighten the bucket policy — allow only specific IAM roles/services
+7. Enable encryption, versioning, and access logging if not already on
+8. If PII or sensitive data was exposed, escalate to the security/compliance team for potential breach notification assessment
+Prevent:
+9. Add an AWS Config rule to auto-alert on public S3 buckets
+10. Add a Service Control Policy (SCP) at the org level to prevent public bucket ACLs
+
+Scenario 6: Overly Permissive IAM Role Found
+
+"During an audit, you find an IAM role attached to a Lambda function has AdministratorAccess. The Lambda is running in production. How do you handle this?"
+
+A:
+I treat this as a security risk that needs careful handling — I can't just remove the policy without understanding what the Lambda actually needs.
+Step 1 — Understand usage:
+
+Enable CloudTrail and use IAM Access Analyzer to review what actions this Lambda has actually called in the last 90 days
+AWS generates a service last accessed report that shows exactly which permissions were used
+
+Step 2 — Build a least-privilege policy:
+
+Based on the access report, create a custom IAM policy with only the actions and resources the Lambda actually needs
+Test in a non-prod environment first
+
+Step 3 — Swap safely:
+
+Attach the new least-privilege policy to the role
+Remove AdministratorAccess
+Monitor Lambda logs and CloudWatch errors for 24–48 hours to catch any permission issues
+
+Step 4 — Prevent recurrence:
+
+Enforce IAM policy reviews in the PR process for any Lambda deployments
+Use tools like PMapper or Cloudsplaining to regularly scan for over-privileged roles
+
+
+CI/CD & Automation
+Scenario 7: Broken CI/CD Pipeline Blocking All Deployments
+
+"Your Terraform CI/CD pipeline in GitHub Actions suddenly starts failing on all PRs with a credentials error. Deployments are blocked. What do you do?"
+
+A:
+Diagnose immediately:
+
+Check the GitHub Actions logs — identify the exact error (e.g., InvalidClientTokenId, ExpiredTokenException, AccessDenied)
+If using IAM access keys stored as GitHub Secrets, check if the key was rotated, deleted, or deactivated
+If using OIDC-based authentication (recommended), check if the IAM role's trust policy still allows the GitHub Actions OIDC provider
+
+Fix:
+
+For expired/deleted keys: generate a new key pair and update the GitHub Secret, or better — migrate to OIDC
+For OIDC trust policy issues: review the Condition block in the role's trust policy — confirm the sub claim matches the repo and branch
+Test with a simple aws sts get-caller-identity step to confirm auth is working before re-running the full pipeline
+
+Communicate:
+
+Post a status update to the engineering channel immediately
+Provide an ETA and workaround (e.g., temporary manual apply with approvals) if the fix will take time
+
+
+Scenario 8: Python Script for Automation Goes Wrong
+
+"You wrote a Python Boto3 script to stop idle EC2 instances overnight to save costs. Monday morning, the team reports critical instances were stopped. What happened and how do you fix it?"
+
+A:
+Root cause likely:
+
+The filtering logic was too broad — probably matched instances by state (running) without checking tags like Environment=Production or DoNotStop=true
+No dry-run mode was used before running live
+
+Immediate fix:
+
+Start the affected instances immediately and notify impacted teams
+Check CloudWatch logs or script output to see exactly which instances were stopped and why they matched the filter
+
+Script fix:
+python# Add exclusion filters
+filters = [
+    {'Name': 'instance-state-name', 'Values': ['running']},
+    {'Name': 'tag:Environment', 'Values': ['dev', 'staging']},  # Only non-prod
+]
+
+# Also check for a DoNotStop tag
+for instance in instances:
+    tags = {t['Key']: t['Value'] for t in instance.get('Tags', [])}
+    if tags.get('DoNotStop') == 'true':
+        continue  # Skip this instance
+Process fix:
+
+Always add a --dry-run flag that logs actions without executing them
+Run in dry-run for 2 days before going live
+Add a mandatory tag policy requiring all prod instances to have Environment=Production
+
+
+Incident Response
+Scenario 9: Unusual API Activity Detected
+
+"CloudTrail alerts fire at 2 AM showing hundreds of DescribeInstances, ListBuckets, and GetSecretValue calls from an IAM user account that hasn't been used in months. What do you do?"
+
+A:
+This looks like a compromised credential — I treat it as an active incident.
+Contain (first 5 minutes):
+
+Immediately deactivate the IAM user's access keys via console or CLI:
+
+bash   aws iam update-access-key --access-key-id <key> --status Inactive --user-name <user>
+
+If the account has console access, disable the login profile too
+
+Investigate:
+3. Pull the full CloudTrail history for that user — look for CreateUser, AttachPolicy, PutBucketPolicy, or GetSecretValue calls that indicate lateral movement or data exfiltration
+4. Check source IP — is it a known corporate IP, a VPN, or a foreign IP/TOR exit node?
+5. Check if any new IAM users, roles, or access keys were created using this identity
+Escalate:
+6. Notify the security team and management — this may require breach assessment depending on what GetSecretValue was called on
+7. Preserve all CloudTrail logs and freeze them for forensic investigation
+Remediate:
+8. Rotate all secrets that were potentially read
+9. Review and revoke any resources or permissions created during the compromise window
+10. Post-incident: enforce MFA on all IAM users and move to SSO/federated identity
+
+Scenario 10: GCP Misconfiguration in a Multi-Cloud Setup
+
+"Your team is expanding to GCP and a GCS bucket used for Terraform state has been flagged as publicly readable. How do you remediate and prevent this in GCP?"
+
+A:
+Immediate remediation:
+
+Remove the allUsers and allAuthenticatedUsers IAM bindings from the bucket:
+
+bash   gcloud storage buckets remove-iam-policy-binding gs://<bucket> \
+     --member=allUsers --role=roles/storage.objectViewer
+
+Enable uniform bucket-level access to prevent ACL-based public access overrides
+Audit GCS access logs to check if the state file was read by any unauthorized party
+
+Secure the bucket:
+4. Grant access only to the specific service account used by Terraform
+5. Enable Customer-Managed Encryption Keys (CMEK) if handling sensitive state
+6. Enable bucket versioning and retention policies
+Prevent recurrence:
+7. Set up an Organization Policy in GCP to enforce constraints/storage.publicAccessPrevention across all projects
+8. Use Security Command Center to continuously monitor for public buckets
+9. Mirror the same controls you have in AWS — treat GCP misconfigurations with the same severity
+
+Want me to add scenarios around compliance/governance, cost optimization, or cross-team collaboration situations as well?You said: give me more security related question and answersgive me more security related question and answersJun 9Claude responded: Here are detailed security-focused scenario-based Q&As:Here are detailed security-focused scenario-based Q&As:
+
+Cloud Security — Scenario-Based Q&A
+IAM & Access Management
+Scenario 1: Privilege Escalation Attempt
+
+"A security tool alerts you that an IAM user with limited permissions has successfully assumed a highly privileged role in production. The user claims they didn't do it. What do you do?"
+
+A:
+Immediate Containment:
+
+Revoke all active sessions for that IAM user immediately:
+
+bash   aws iam attach-user-policy \
+     --user-name <username> \
+     --policy-arn arn:aws:iam::aws:policy/AWSDenyAll
+
+Revoke the assumed role session by updating the role's trust policy to remove that user temporarily
+Check if any resources were created or modified during the assumed role session
+
+Investigate:
+4. Pull CloudTrail logs filtering on AssumeRole for that user — check source IP, time, and user agent
+5. Trace how they were able to assume the role — look at the role's trust policy for overly broad conditions like missing aws:MultiFactorAuthPresent checks
+6. Check if the user has sts:AssumeRole on * anywhere in their policies — this is a classic privilege escalation path
+7. Use tools like PMapper to graph all escalation paths from that user's permissions
+Root Cause — Common Escalation Paths:
+
+Trust policy missing MFA condition
+Wildcard resource on sts:AssumeRole
+Overly permissive resource-based policies on the role
+Confused deputy attack via a service
+
+Remediate:
+8. Tighten the role's trust policy — add explicit conditions:
+json   "Condition": {
+     "Bool": {
+       "aws:MultiFactorAuthPresent": "true"
+     },
+     "StringEquals": {
+       "aws:PrincipalAccount": "<trusted-account-id>"
+     }
+   }
+
+Audit all roles for similar overly broad trust policies using IAM Access Analyzer
+Implement AWS Organizations SCPs to restrict sts:AssumeRole cross-account
+
+
+Scenario 2: Leaked AWS Access Keys on GitHub
+
+"A developer accidentally pushed AWS access keys to a public GitHub repository. You are notified 30 minutes after the push. What is your response?"
+
+A:
+First 5 minutes — Contain:
+
+Immediately deactivate the key:
+
+bash   aws iam update-access-key \
+     --access-key-id <AKID> \
+     --status Inactive \
+     --user-name <username>
+
+Delete the key entirely after deactivation
+Ask the developer to remove the commit and force-push — but assume the key is already compromised since public repos are scraped within seconds by bots
+
+Investigate (assume breach):
+4. Pull all CloudTrail activity for that key from the time of the push:
+bash   aws cloudtrail lookup-events \
+     --lookup-attributes AttributeKey=AccessKeyId,AttributeValue=<AKID>
+
+Look specifically for:
+
+New IAM users or keys created
+S3 data access or exfiltration
+EC2 instance launches (especially in unusual regions)
+Secrets Manager or Parameter Store reads
+SES or SNS abuse for spam/phishing
+
+
+Check all AWS regions — attackers often launch resources in regions you don't normally use
+
+Remediate:
+7. If any unauthorized activity is found, treat as a full security incident
+8. Rotate all secrets that may have been read
+9. Terminate any unauthorized resources immediately
+10. Review GuardDuty findings for the account — it flags credential abuse automatically
+Prevent:
+11. Implement git-secrets or truffleHog as a pre-commit hook to scan for credentials before push
+12. Set up GitHub Secret Scanning — GitHub can auto-alert AWS and revoke keys when found
+13. Enforce using IAM roles everywhere — eliminate long-lived access keys
+14. Add a mandatory quarterly access key rotation policy
+
+Network & Infrastructure Security
+Scenario 3: Security Group Allows 0.0.0.0/0 on Port 22
+
+"During a routine audit you find 15 EC2 instances in production have SSH open to the entire internet. The ops team says they need SSH access for troubleshooting. How do you remediate without breaking their workflow?"
+
+A:
+Risk Assessment First:
+
+Check CloudTrail and VPC Flow Logs to see if any external IPs have actually connected on port 22
+If yes — treat as potential compromise and investigate those instances
+
+Propose a Secure Alternative — AWS Systems Manager Session Manager:
+
+Session Manager gives full shell access to EC2 instances without any open inbound ports
+No SSH keys needed, all sessions are logged to CloudTrail and S3
+Access controlled via IAM policies — easy to restrict by team or role
+
+Migration plan:
+bash# Verify SSM agent is running on instances
+aws ssm describe-instance-information
+
+# Start a session without SSH
+aws ssm start-session --target <instance-id>
+Remove the SSH rule:
+4. Update security groups to remove the 0.0.0.0/0 rule on port 22
+5. If SSH must be retained for legacy reasons, restrict to a bastion host IP or corporate VPN CIDR only
+6. Never use 0.0.0.0/0 — even a /32 IP is better
+Automate detection:
+7. Create an AWS Config rule restricted-ssh — it auto-flags any security group allowing unrestricted SSH
+8. Set up an auto-remediation Lambda that removes 0.0.0.0/0 rules on port 22 automatically using Config + SSM Automation
+
+Scenario 4: Cryptomining Malware Detected on EC2 Instance
+
+"GuardDuty raises a high-severity finding: CryptoCurrency:EC2/BitcoinTool.B on a production EC2 instance. The instance is part of a running application. What do you do?"
+
+A:
+Isolate without killing evidence:
+
+Do NOT terminate the instance immediately — you need it for forensics
+Isolate it by moving it to a quarantine security group with no inbound or outbound access:
+
+bash   aws ec2 modify-instance-attribute \
+     --instance-id <id> \
+     --groups <quarantine-sg-id>
+
+Take an EBS snapshot for forensic analysis
+Detach or disable the instance's IAM role to prevent further API calls
+
+Shift traffic:
+5. If the instance is behind a load balancer, deregister it from the target group immediately
+6. Launch a clean replacement instance from a known-good AMI to restore service
+Investigate:
+7. Analyze VPC Flow Logs for outbound connections to mining pool IPs
+8. Check CloudTrail for how the instance was compromised — look for:
+
+IMDSv1 abuse (metadata service credential theft)
+Public-facing application exploits
+Compromised SSH key usage
+
+
+Check if the instance's IAM credentials were exfiltrated via the metadata service:
+
+bash   # Check if IMDSv2 was enforced
+   aws ec2 describe-instances --query 'Reservations[].Instances[].MetadataOptions'
+Remediate:
+10. Enforce IMDSv2 on all instances to prevent SSRF-based credential theft:
+bash    aws ec2 modify-instance-metadata-options \
+      --instance-id <id> \
+      --http-tokens required \
+      --http-put-response-hop-limit 1
+
+Rebuild the compromised instance from a clean AMI
+Rotate all credentials the instance's IAM role had access to
+
+
+Data & Storage Security
+Scenario 5: Unencrypted EBS Volumes in Production
+
+"A compliance audit finds that 40% of your production EBS volumes are unencrypted. Encryption must be enforced within 48 hours. How do you do this without downtime?"
+
+A:
+You cannot encrypt an existing EBS volume in-place — the process requires a snapshot:
+Step-by-step for each volume:
+
+Create a snapshot of the unencrypted volume:
+
+bash   aws ec2 create-snapshot --volume-id <vol-id> \
+     --description "Pre-encryption snapshot"
+
+Copy the snapshot with encryption enabled:
+
+bash   aws ec2 copy-snapshot --source-snapshot-id <snap-id> \
+     --encrypted --kms-key-id <key-arn> \
+     --source-region <region>
+
+Create a new encrypted volume from the encrypted snapshot
+Stop the instance during a maintenance window, swap the volume, restart
+
+For scale — automate with Python Boto3:
+pythonimport boto3
+
+ec2 = boto3.client('ec2')
+
+# Find all unencrypted volumes
+volumes = ec2.describe_volumes(
+    Filters=[{'Name': 'encrypted', 'Values': ['false']}]
+)
+
+for vol in volumes['Volumes']:
+    # Create snapshot, copy encrypted, create new volume
+    snap = ec2.create_snapshot(VolumeId=vol['VolumeId'])
+    # Continue with copy and replace logic
+Prevent going forward:
+5. Enable EBS encryption by default at the account level — all new volumes are encrypted automatically:
+bash   aws ec2 enable-ebs-encryption-by-default --region <region>
+
+Add an AWS Config rule encrypted-volumes to flag any unencrypted volumes
+Add an SCP to prevent creation of unencrypted volumes org-wide
+
+
+Scenario 6: RDS Database Publicly Accessible
+
+"A new engineer accidentally deployed an RDS instance with publicly_accessible = true in Terraform. It's in production. How do you handle it?"
+
+A:
+Immediate check:
+
+Verify if the RDS instance actually has a public IP and is reachable from the internet — check the VPC subnet routing and security group
+Even if publicly_accessible = true, if the security group doesn't allow inbound 3306/5432 from 0.0.0.0/0, the risk is lower but still present
+
+Remediate:
+3. Update the Terraform config immediately:
+hcl   resource "aws_db_instance" "main" {
+     publicly_accessible = false
+     # other config
+   }
+
+Apply the change — AWS will remove the public endpoint without data loss or downtime
+Ensure the RDS instance is in a private subnet with no route to the internet gateway
+
+Security group lockdown:
+6. Restrict the RDS security group to allow inbound only from the application tier security group — never from 0.0.0.0/0
+Audit logs:
+7. Check RDS enhanced monitoring and audit logs for any unauthorized login attempts
+8. Rotate the master password and all application credentials as a precaution
+Prevent:
+9. Add a Terraform precondition or a Sentinel policy that fails the plan if publicly_accessible = true in non-dev environments
+10. Add an AWS Config rule rds-instance-public-access-check
+
+Compliance & Governance
+Scenario 7: Failing a SOC 2 / CIS Benchmark Audit
+
+"Your organization is preparing for SOC 2 certification. The auditor flags that CloudTrail is not enabled in all regions and MFA is not enforced for IAM users. You have 2 weeks to fix it. What is your plan?"
+
+A:
+Week 1 — Remediate:
+CloudTrail — Enable in all regions:
+hclresource "aws_cloudtrail" "org_trail" {
+  name                          = "org-trail"
+  s3_bucket_name                = aws_s3_bucket.trail_bucket.id
+  is_multi_region_trail         = true
+  include_global_service_events = true
+  enable_log_file_validation    = true
+  
+  event_selector {
+    read_write_type           = "All"
+    include_management_events = true
+  }
+}
+
+Set is_multi_region_trail = true — one trail covers all regions
+Enable log file validation to detect tampering
+Send logs to a centralized S3 bucket in a separate security account
+
+MFA Enforcement:
+
+Attach an IAM policy to all users that denies all actions except MFA enrollment if MFA is not present:
+
+json{
+  "Effect": "Deny",
+  "NotAction": [
+    "iam:CreateVirtualMFADevice",
+    "iam:EnableMFADevice",
+    "sts:GetSessionToken"
+  ],
+  "Resource": "*",
+  "Condition": {
+    "BoolIfExists": {
+      "aws:MultiFactorAuthPresent": "false"
+    }
+  }
+}
+
+Send instructions to all users to enroll MFA within 5 business days
+Use AWS Config rule mfa-enabled-for-iam-console-access to track compliance
+
+Week 2 — Validate and Document:
+
+Run AWS Security Hub with CIS AWS Foundations Benchmark enabled
+Export the compliance score and share with the auditor
+Document all remediation steps with before/after evidence for the audit trail
+
+
+Scenario 8: GuardDuty Finding — Unusual Login from Foreign Country
+
+"GuardDuty raises UnauthorizedAccess:IAMUser/ConsoleLoginSuccess.B — a successful console login from a country your organization doesn't operate in. What do you investigate and do?"
+
+A:
+Treat as compromised until proven otherwise:
+Contain immediately:
+
+Disable the IAM user's console access:
+
+bash   aws iam delete-login-profile --user-name <username>
+
+Deactivate all access keys for that user
+Revoke any active sessions using a deny-all policy
+
+Investigate:
+4. Pull CloudTrail for the last 24 hours for that user — look for:
+
+Resources created in unusual regions
+IAM changes (new users, roles, policies)
+Data access — S3 GetObject, Secrets Manager reads
+Billing changes — Reserved Instance purchases, support plan changes
+
+
+Check the source IP against threat intelligence feeds — is it a known VPN, TOR exit node, or flagged IP?
+Contact the actual user — confirm if they were traveling or using a VPN
+
+If confirmed compromise:
+7. Full incident response — contain, investigate blast radius, rotate all potentially exposed secrets
+8. Check if the attacker moved laterally — used the console to access other services or assume roles
+If false positive (user traveling):
+9. Document it, re-enable access, and recommend the user use a corporate VPN
+10. Regardless — use this as an opportunity to enforce MFA and set up IAM condition keys restricting login to known IPs:
+json    "Condition": {
+      "NotIpAddress": {
+        "aws:SourceIp": ["<corporate-ip-range>"]
+      }
+    }
+
+Vulnerability Management
+Scenario 9: Zero-Day Vulnerability Announced for a Service You Use
+
+"A critical zero-day CVE is published for a widely used library (like Log4Shell) that affects your Java-based applications running on EC2 and Lambda. It's Friday evening. What do you do?"
+
+A:
+First 30 minutes — Assess:
+
+Identify all services using the affected library — check your CMDB, application manifests, and dependency files (pom.xml, build.gradle)
+Use AWS Inspector — it often flags Log4j-style vulnerabilities within hours of CVE publication
+Prioritize internet-facing services first — they are highest risk
+
+Containment while patch isn't ready:
+4. For Log4Shell specifically, the immediate mitigation was setting a JVM flag:
+bash   -Dlog4j2.formatMsgNoLookups=true
+
+Add WAF rules to block the exploit string ${jndi: at the load balancer or CloudFront level immediately — this buys time
+Restrict outbound internet access from EC2 instances using security groups and NACLs to prevent JNDI callback
+
+Patch:
+7. Update the library version in all affected services
+8. For Lambda — update the layer or deployment package and redeploy
+9. For EC2 — build a new AMI with the patched version and roll it out via ASG instance refresh
+Communication:
+10. Send hourly status updates to the security team and leadership during active exploitation windows
+11. Document every action taken with timestamps for the post-incident report
+
+Scenario 10: Insider Threat — Employee Downloading Bulk Data Before Resignation
+
+"HR informs you that a cloud engineer gave notice today. Shortly after, CloudTrail shows them running bulk S3 GetObject and ListBuckets calls across multiple sensitive buckets. What do you do?"
+
+A:
+Act carefully — this is both a security and HR matter:
+Coordinate with HR and Legal first:
+
+Do not confront the employee directly — loop in HR and Legal before taking technical action
+Preserve all evidence — do not delete or alter any logs
+
+Contain access immediately (with HR approval):
+3. Deactivate all access keys and disable console access
+4. Revoke active sessions
+5. Remove the engineer from all IAM groups and roles
+Investigate scope:
+6. Pull complete CloudTrail history for the last 30 days for that user
+7. Check specifically:
+
+Which buckets and objects were accessed
+Were files downloaded to an external IP?
+Were any S3 presigned URLs generated for sensitive objects?
+Were any new IAM users or keys created?
+
+
+Check VPC Flow Logs for large data transfers to external IPs
+
+Data Loss Assessment:
+9. Identify if any of the accessed data was PII, IP, or confidential business data
+10. If confirmed data exfiltration — escalate to Legal for potential breach notification requirements
+Post-incident controls:
+11. Implement a formal offboarding checklist that immediately revokes all cloud access on day one of notice
+12. Set up CloudWatch alarms for bulk S3 download patterns exceeding a threshold
+13. Enable S3 Object Lock for critical buckets to prevent deletion of evidence`
+
+
+
+what is aws config
+
+6:33 AM
+AWS Config — Complete Guide
+What is AWS Config?
+AWS Config is a continuous monitoring and assessment service that records the configuration of your AWS resources over time and evaluates them against desired rules. Think of it as a CCTV camera for your AWS infrastructure — it constantly watches what your resources look like, tracks every change, and alerts you when something doesn't meet your standards.
+
+Core Concepts
+1. Configuration Items (CI)
+
+Every time a resource changes, AWS Config captures a snapshot called a Configuration Item. It records:
+
+Resource type and ID
+Current configuration state
+Relationships with other resources
+Who made the change and when (via CloudTrail integration)
+Tags
+Think of it as a photograph of a resource at a specific point in time.
+
+2. Configuration History
+
+AWS Config stores the full history of all configuration items for every resource. This lets you answer questions like:
+
+"What did this EC2 instance's security group look like 3 months ago?" "When was this S3 bucket made public and who did it?"
+
+3. Configuration Snapshot
+
+A point-in-time capture of all your AWS resources and their configurations delivered to an S3 bucket. Useful for audits and compliance reporting.
+
+4. Config Rules
+
+Rules are the heart of AWS Config. They define the desired state of your resources and continuously evaluate whether resources comply.
+
+Two types:
+
+Type	Description	Example
+AWS Managed Rules	Pre-built by AWS — ready to use	s3-bucket-public-read-prohibited
+Custom Rules	You write the logic using Lambda	Check if EC2 tags follow your naming convention
+5. Conformance Packs
+
+A collection of Config rules and remediation actions packaged together for a specific compliance framework like:
+
+CIS AWS Foundations Benchmark
+PCI DSS
+HIPAA
+SOC 2
+Instead of adding 50 rules one by one, you deploy one conformance pack.
+
+6. Remediation Actions
+
+When a resource is found non-compliant, Config can automatically fix it using SSM Automation documents.
+
+Example: If an S3 bucket is found public → automatically enable Block Public Access.
+
+How AWS Config Works — Flow
+Resource Changes
+      ↓
+AWS Config Recorder detects change
+      ↓
+Configuration Item created and stored in S3
+      ↓
+Config Rules evaluate the new state
+      ↓
+Resource marked Compliant or Non-Compliant
+      ↓
+SNS Notification / EventBridge Alert fired
+      ↓
+Optional: Auto-Remediation via SSM Automation
+Key AWS Config Rules You Must Know
+S3 Security:
+
+s3-bucket-public-read-prohibited — flags buckets allowing public read
+s3-bucket-public-write-prohibited — flags buckets allowing public write
+s3-bucket-server-side-encryption-enabled — ensures encryption is on
+s3-bucket-logging-enabled — ensures access logging is enabled
+EC2 Security:
+
+restricted-ssh — flags security groups allowing 0.0.0.0/0 on port 22
+restricted-common-ports — flags open risky ports like 3389, 3306
+ec2-ebs-encryption-by-default — ensures EBS encryption default is enabled
+ec2-imdsv2-check — ensures IMDSv2 is enforced on instances
+IAM Security:
+
+mfa-enabled-for-iam-console-access — flags users without MFA
+iam-user-no-policies-check — flags users with directly attached policies
+iam-root-access-key-check — alerts if root account has active access keys
+access-keys-rotated — flags access keys older than X days
+RDS Security:
+
+rds-instance-public-access-check — flags publicly accessible RDS
+rds-storage-encrypted — ensures RDS storage is encrypted
+rds-multi-az-support — ensures Multi-AZ is enabled for HA
+CloudTrail & Logging:
+
+cloud-trail-enabled — ensures CloudTrail is enabled
+cloudtrail-s3-dataevents-enabled — ensures S3 data events are logged
+vpc-flow-logs-enabled — ensures VPC Flow Logs are turned on
+AWS Config vs CloudTrail — Key Difference
+This is a very common interview question:
+
+Feature	AWS Config	CloudTrail
+Focus	What does a resource look like?	Who did what and when?
+Tracks	Resource configuration state	API calls and user actions
+Question answered	"Is my S3 bucket encrypted right now?"	"Who disabled encryption on this bucket?"
+Use case	Compliance, drift detection	Audit trail, forensics
+Works best	Together — Config detects the change, CloudTrail shows who made it	Together with Config
+Real-World Use Cases
+Use Case 1 — Compliance Auditing
+
+Your company needs to prove to auditors that all EBS volumes are encrypted at all times.
+
+Enable the encrypted-volumes Config rule
+AWS Config continuously checks every EBS volume
+Any unencrypted volume immediately shows as Non-Compliant
+Export the compliance report directly for the auditor
+Use Case 2 — Security Drift Detection
+
+Someone manually opens port 22 to 0.0.0.0/0 on a production security group at 2 AM.
+
+Config detects the security group change within minutes
+The restricted-ssh rule flags it as Non-Compliant
+EventBridge fires an alert to your security team's Slack channel
+Optional auto-remediation removes the rule automatically
+Use Case 3 — Incident Investigation
+
+A production server was breached. You need to know what the security group looked like over the past 30 days.
+
+Go to AWS Config → select the security group resource
+View the full configuration timeline
+See exactly when each rule was added or removed
+Cross-reference with CloudTrail to see who made each change
+Use Case 4 — Tagging Enforcement
+
+Your organization requires all EC2 instances to have Owner, Environment, and CostCenter tags.
+
+Write a custom Lambda-backed Config rule that checks for required tags
+Any instance missing a tag is marked Non-Compliant
+Auto-remediation can stop or tag the instance automatically
+Setting Up AWS Config — Terraform Example
+hcl
+# Enable AWS Config Recorder
+resource "aws_config_configuration_recorder" "main" {
+  name     = "main-recorder"
+  role_arn = aws_iam_role.config_role.arn
+
+  recording_group {
+    all_supported                 = true
+    include_global_resource_types = true
+  }
+}
+
+# Delivery channel — send to S3
+resource "aws_config_delivery_channel" "main" {
+  name           = "main-channel"
+  s3_bucket_name = aws_s3_bucket.config_bucket.id
+  depends_on     = [aws_config_configuration_recorder.main]
+}
+
+# Enable a managed rule — restrict SSH
+resource "aws_config_config_rule" "restricted_ssh" {
+  name = "restricted-ssh"
+
+  source {
+    owner             = "AWS"
+    source_identifier = "INCOMING_SSH_DISABLED"
+  }
+
+  depends_on = [aws_config_configuration_recorder_status.main]
+}
+Auto-Remediation Example
+hcl
+# Auto-remediate non-compliant S3 buckets
+resource "aws_config_remediation_configuration" "s3_public_access" {
+  config_rule_name = "s3-bucket-public-read-prohibited"
+  target_type      = "SSM_DOCUMENT"
+  target_id        = "AWS-DisableS3BucketPublicReadWrite"
+  automatic        = true
+
+  parameter {
+    name         = "BucketName"
+    resource_value = "RESOURCE_ID"
+  }
+
+  maximum_automatic_attempts = 3
+  retry_attempt_seconds      = 60
+}
+AWS Config Pricing
+What you pay for	Cost
+Configuration items recorded	$0.003 per CI
+Config rule evaluations	$0.001 per evaluation
+Conformance pack evaluations	$0.001 per evaluation
+For a medium-sized AWS account, Config typically costs $20–$100/month depending on the number of resources and rules.
+
+Interview Questions on AWS Config
+Q: What is the difference between AWS Config and AWS Security Hub?
+
+A: Config detects and records resource configuration changes and evaluates rules. Security Hub aggregates findings from Config, GuardDuty, Inspector, Macie, and other services into a single dashboard with a unified compliance score. Config feeds findings into Security Hub — they work together.
+
+Q: Can AWS Config fix issues automatically?
+
+A: Yes, through remediation actions using SSM Automation documents. You can set auto-remediation to trigger immediately when a rule is violated, with a configurable retry count.
+
+Q: What happens if AWS Config is disabled in a region?
+
+A: Config stops recording resource changes in that region. You lose visibility into configuration history and compliance status for all resources there. This is itself a compliance violation — which is why the cloud-trail-enabled and multi-region recording rules exist.
+
+Q: How does AWS Config support multi-account environments?
+
+A: Using AWS Config Aggregator, you can collect compliance data from multiple accounts and regions into a single central account. This is typically set up in an AWS Organizations management account to give a company-wide compliance view.
