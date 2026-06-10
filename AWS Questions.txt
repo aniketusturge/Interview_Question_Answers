@@ -1,6 +1,7 @@
 AWS Questions 
 
 
+
 SECTION : EC2
 ------------------------------------------------------------------------------------------
 
@@ -2229,7 +2230,8 @@ Problem: DDoS attacks flood your network, application, or server with massive am
 Solution: AWS Shield detects and mitigates DDoS attacks in real time to keep your AWS-hosted applications running smoothly, ensuring high availability and minimal downtime.
 
 🚨 2. AWS Shield Standard (Automatic Protection)
-Protection: Shield Standard is automatically enabled for all AWS customers at no additional cost. It provides protection against the most common types of DDoS attacks, such as volumetric attacks (flooding traffic), state-exhaustion attacks (overloading connection tables), and small-scale application layer attacks.
+Protection: Shield Standard is automatically enabled for all AWS customers at no additional cost. It provides protection against the most common types of DDoS attacks, 
+such as volumetric attacks (flooding traffic), state-exhaustion attacks (overloading connection tables), and small-scale application layer attacks.
 How it works:
 Traffic Anomaly Detection: Shield Standard uses AWS global network and machine learning models to identify traffic anomalies and automatically apply mitigation measures.
 Edge Protection: AWS services like Amazon CloudFront and Elastic Load Balancing (ELB) absorb and block large-scale attacks at the AWS edge locations.
@@ -2314,3 +2316,360 @@ Automated Remediation:
 "In summary, AWS GuardDuty is a threat detection service that identifies potential security threats in your AWS environment, while AWS Security Hub acts as a central security management service, aggregating findings from GuardDuty and other AWS security services, and helping teams prioritize and respond to security risks."
 
 ----------------------------------
+
+Q. What AWS services help in vulnerability management?
+
+AWS Inspector
+AWS Security Hub
+AWS GuardDuty
+AWS Config
+AWS Trusted Advisor
+
+Q. What is AWS Inspector?
+AWS Inspector scans EC2 instances, containers, and Lambda functions for vulnerabilities and security issues.
+
+Q. What is AWS Security Hub?
+Centralized dashboard that aggregates security findings from AWS services and third-party tools.
+
+Q. What is GuardDuty?
+Threat detection service that identifies malicious activities using ML and threat intelligence.
+Examples:
+Unauthorized API calls
+Crypto mining
+Compromised EC2 instances
+
+Q. What are common cloud misconfigurations?
+-Public S3 buckets
+-Open security groups (0.0.0.0/0)
+-Excessive IAM permissions
+-Unencrypted storage
+-Disabled logging
+
+Q. How do you secure an S3 bucket?
+-Block public access
+-Enable encryption
+-Use bucket policies
+-Enable versioning
+-Enable logging
+
+Q. What is least privilege access?
+Users should get only the permissions required to perform their tasks and nothing more.
+Implemented through IAM policies.
+
+Q.What is IAM Role?
+IAM Role provides temporary permissions to AWS services or users without sharing access keys.
+Example:
+EC2 accessing S3 bucket.
+
+Q.Difference between IAM User and IAM Role?
+IAM User	              IAM Role
+Permanent identity    	Temporary identity
+Long-term credentials 	Temporary credentials
+Human users	            Applications/services
+
+Q. How do you troubleshoot an IAM Access Denied issue?
+Check:
+-IAM policy
+-Resource policy
+-SCP policy
+-Permission boundaries
+-Trust relationship
+
+Use:
+aws sts get-caller-identity
+
+
+Q.What would you do if a production server CPU becomes 100%?
+
+Linux:
+top
+htop
+ps -aux --sort=-%cpu
+
+Steps:
+Identify process
+Check logs
+Restart service if needed
+Scale resources
+Root cause analysis
+
+
+Q. What is AWS Config?
+AWS Config tracks configuration changes and evaluates compliance against rules.
+
+Example:
+Detect publicly accessible S3 buckets.
+
+31. What is compliance in cloud?
+Ensuring cloud resources follow security and regulatory standards.
+
+Examples:
+PCI DSS
+ISO 27001
+SOC 2
+HIPAA
+
+32. What is incident response?
+Process of handling security or operational incidents.
+
+Steps:
+Detect
+Analyze
+Contain
+Remediate
+Recover
+RCA
+
+33. Explain a security issue you resolved.
+AWS Inspector identified outdated packages on EC2 instances.
+I patched the servers, validated the fix, rescanned using Inspector, and closed the vulnerability after verification.
+
+
+Q. An S3 bucket became public accidentally. How will you fix it?
+
+Block public access immediately.
+Remove public bucket policy/ACL.
+Check CloudTrail logs to identify who changed it.
+Enable versioning if not enabled.
+Review accessed objects.
+Apply least privilege permissions.
+
+Q. How do you check who made changes to an AWS resource?
+
+Use AWS CloudTrail.
+-Search API events.
+-dentify IAM user/role.
+-Check timestamp and source IP.
+
+Q. How do you know if someone accessed data from an S3 bucket?
+Check:
+-CloudTrail Data Events
+-S3 Server Access Logs
+-CloudWatch Logs
+-Security Hub findings
+
+Q. An EC2 instance is communicating with suspicious IPs. What will you do?
+-Isolate instance using Security Groups.
+-Check GuardDuty findings.
+-Review VPC Flow Logs.
+-Analyze running processes.
+-Take snapshot for forensic investigation.
+-Patch or rebuild server.
+
+Q. What is AWS GuardDuty?
+Threat detection service that continuously monitors:
+-AWS API calls
+-VPC Flow Logs
+-DNS logs
+-CloudTrail logs
+
+Detects:
+-Crypto mining
+-Credential compromise
+-Malicious communication
+
+Q. What is Security Hub?
+Central dashboard for security findings from:
+-GuardDuty
+-Inspector
+-Config
+-Macie
+-Third-party tools
+
+Q. What is AWS Macie?
+Macie discovers and protects sensitive data in S3 buckets.
+-PAN numbers
+-Credit card data
+-Personal information
+
+Q. What is AWS Inspector?
+Automated vulnerability scanner for:
+-EC2
+-Containers
+-Lambda
+
+Finds:
+-CVEs
+-Missing patches
+-oftware vulnerabilities
+
+Q. How do you secure EC2 instances?
+-Use IAM roles
+-Patch regularly
+-Restrict Security Groups
+-Disable root login
+-Enable EBS encryption
+-Enable CloudWatch monitoring
+-Use SSM instead of SSH
+
+11. How do you identify over-permissioned IAM users?
+Use:
+-IAM Access Analyzer
+-IAM Last Accessed Information
+-Security Hub findings
+-IAM Credential Reports
+
+Q. What is IAM Access Analyzer?
+Identifies:
+-Public resources
+-Cross-account access
+-Excessive permissions
+
+Q. How do you secure AWS root account?
+-Enable MFA
+-No access keys
+-Strong password
+-Use only for account-level tasks
+-Create admin IAM users
+
+Q. How do you detect unused IAM users?
+Check:
+-IAM Credential Report
+-Last Login Time
+-Access Advisor
+-Remove or disable inactive accounts.
+
+Q. What is AWS Config?
+Tracks resource configuration changes and compliance.
+
+Examples:
+Detect public S3 buckets
+Detect unencrypted EBS volumes
+Detect open Security Groups
+
+Q. What are VPC Flow Logs?
+Capture network traffic information.
+
+Useful for:
+Security investigation
+Troubleshooting
+Detecting suspicious traffic
+
+19. Why is 0.0.0.0/0 risky?
+
+Answer:
+Allows access from anywhere on the internet.
+
+Examples:
+
+SSH 22 open
+RDP 3389 open
+
+Can lead to unauthorized access.
+
+Q. How do you find open Security Groups?
+AWS CLI:
+aws ec2 describe-security-groups
+
+Or use:
+-Security Hub
+-AWS Config
+-Trusted Advisor
+
+21. What is EBS encryption?
+Encrypts data at rest using KMS keys.
+
+Protects:
+-Volumes
+-Snapshots
+-Attached storage
+
+22. What is KMS?
+AWS Key Management Service.
+
+Used for:
+-S3 encryption
+-EBS encryption
+-RDS encryption
+-Secrets encryption
+
+23. How do you rotate secrets securely?
+Use:
+-AWS Secrets Manager
+-Automatic rotation
+-IAM-controlled access
+
+24. Secret key accidentally exposed in GitHub. What will you do?
+-Disable key immediately.
+-Generate new credentials.
+-Check CloudTrail activity.
+-Review unauthorized actions.
+-Rotate secrets.
+-Implement secret scanning.
+
+Q. What is CIS Benchmark?
+Security best-practice framework for cloud environments.
+
+Examples:
+-MFA enabled
+-Root account secured
+-Logging enabled
+-Encryption enabled
+
+Q. What is a vulnerability scan?
+Automated scan that identifies:
+-Missing patches
+-CVEs
+-Weak configurations
+-Security risks
+
+Tools:
+-Inspector
+-Nessus
+-Qualys
+-Tenable
+
+29. Critical vulnerability found on production EC2. What will you do?
+-Assess severity.
+-Identify affected servers.
+-Schedule emergency patch.
+-Test in non-prod.
+-Patch production.
+-Validate remediation.
+-Document closure.
+
+30. How do you handle a security incident?
+Detect → Analyze → Contain → Eradicate → Recover → RCA
+
+Example:
+GuardDuty alert
+Isolate instance
+Investigate logs
+Remove threat
+Restore service
+Submit RCA
+
+31. What logs are most important during a security investigation?
+CloudTrail
+VPC Flow Logs
+CloudWatch Logs
+GuardDuty Findings
+Security Hub Findings
+Application Logs
+OS Logs (/var/log/messages, /var/log/secure)
+
+33. What is Zero Trust Security?
+"Never trust, always verify."
+
+Principles:
+-Verify identity
+-Least privilege
+-Continuous monitoring
+-Micro-segmentation
+
+34. What is SCP in AWS Organizations?
+
+Service Control Policy limits maximum permissions for AWS accounts in an organization.
+
+Even if IAM allows an action, SCP can deny it.
+
+35. Production Scenario
+
+Question: An IAM user deleted an S3 bucket. How will you investigate?
+-Check CloudTrail for DeleteBucket.
+-Identify IAM user/role.
+-Verify source IP and timestamp.
+-Check if MFA was used.
+-Recover data using versioning/backups.
+-Apply least privilege and MFA controls.
+

@@ -979,10 +979,32 @@ I implement CI/CD for Terraform to ensure safe, consistent, and automated infras
 
 
 -------------------------------------------------------
+How would you troubleshoot a Terraform deployment failure?
 
+Answer:
+
+Check error logs
+Validate syntax
+terraform validate
+Run:
+terraform plan
+Verify AWS permissions
+Check state file
 
 -------------------------------------------------------
+Q. How do you secure Terraform deployments?
+-Store state in encrypted S3
+-Use DynamoDB locking
+-Use IAM roles
+-Avoid hardcoded secrets
+-Use remote backend
+-Enable code reviews
 
+Q. Terraform state file contains passwords. What will you do?
+-Move secrets to Secrets Manager
+-Rotate exposed credentials
+-Restrict state file access
+-Encrypt backend storage
 
 
 -------------------------------------------------------
