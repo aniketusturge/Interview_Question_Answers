@@ -1534,6 +1534,7 @@ spec:
   resources:
     requests:
       storage: 5Gi
+
 Step 3: Mount the PVC into the Pod
 yaml
 apiVersion: v1
@@ -1551,6 +1552,7 @@ spec:
   - name: my-storage
     persistentVolumeClaim:
       claimName: my-pvc
+
 ☁️ 3. In Production (Cloud Storage)
 In real-world environments:
 Use dynamic provisioning via a StorageClass
@@ -1961,7 +1963,12 @@ Application may return:
 timeout
 
 🧠 Real Interview Answer (Strong Version)
-“If all Pods are healthy but the application is inaccessible, I would troubleshoot the networking path step by step. First, I’d verify the Service selectors, ports, and endpoints. Then I’d check Ingress configuration, DNS resolution, and NetworkPolicies. I’d also validate whether the application is listening on the correct interface and port inside the container. If external access is involved, I’d inspect LoadBalancer, firewall, or security group rules. Finally, I’d review application logs and backend dependencies to identify any hidden runtime issues.”
+“If all Pods are healthy but the application is inaccessible, I would troubleshoot the networking path step by step. 
+First, I’d verify the Service selectors, ports, and endpoints. 
+Then I’d check Ingress configuration, DNS resolution, and NetworkPolicies. 
+I’d also validate whether the application is listening on the correct interface and port inside the container. 
+If external access is involved, I’d inspect LoadBalancer, firewall, or security group rules. 
+Finally, I’d review application logs and backend dependencies to identify any hidden runtime issues.”
 
 📌 Quick Troubleshooting Flow
 Pods Healthy
@@ -2025,7 +2032,12 @@ Or use kubectl patch to bind a pod:
 kubectl patch pod mypod -p '{"spec":{"nodeName":"worker-1"}}'
 
 ✅ Interview-Ready Answer
-"If the scheduler fails, existing workloads continue running but new pods remain in Pending state. My first step is to check the scheduler pod status and logs in the kube-system namespace. If it’s a static pod issue, I fix its manifest under /etc/kubernetes/manifests/ and restart kubelet. If it’s a config or connectivity issue, I validate the scheduler config and API server access. In production, we mitigate this by running multiple schedulers with leader election so another instance takes over automatically. As a temporary workaround, pods can also be scheduled manually by assigning them to specific nodes."
+"If the scheduler fails, existing workloads continue running but new pods remain in Pending state. 
+My first step is to check the scheduler pod status and logs in the kube-system namespace. 
+If it’s a static pod issue, I fix its manifest under /etc/kubernetes/manifests/ and restart kubelet. 
+If it’s a config or connectivity issue, I validate the scheduler config and API server access. 
+In production, we mitigate this by running multiple schedulers with leader election so another instance takes over automatically. 
+As a temporary workaround, pods can also be scheduled manually by assigning them to specific nodes."
 
 
 --------------------------------------------

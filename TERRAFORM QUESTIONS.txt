@@ -349,7 +349,9 @@ Drift occurs when infrastructure is changed outside Terraform. I detect drift by
 
 If a Terraform apply accidentally deletes production resources, how would you recover?
 
-If a terraform apply accidentally deletes production resources, my first step would be to stop any further applies and immediately notify the team. Then I’d work on recovery — usually by restoring from backups or snapshots (for example, EC2 AMIs or RDS point-in-time recovery). If a remote backend is used, I’d roll back to the last good state, or if resources are still partially there, I’d use terraform import to bring them back under Terraform’s control.
+If a terraform apply accidentally deletes production resources, my first step would be to stop any further applies and immediately notify the team. 
+Then I’d work on recovery — usually by restoring from backups or snapshots (for example, EC2 AMIs or RDS point-in-time recovery). 
+If a remote backend is used, I’d roll back to the last good state, or if resources are still partially there, I’d use terraform import to bring them back under Terraform’s control.
 
 To prevent this in the future, I’d enforce guardrails like terraform plan with peer review, state locking, lifecycle.prevent_destroy on critical resources, automated backups, and stricter change approvals for production. This way, even if mistakes happen, we can recover quickly and reduce risk.
 ------------------------------------------------------
@@ -396,7 +398,9 @@ terraform {
 This ensures state is backed up and safe.
 
 🔹 Interview-Ready Answer (Concise)
-If the local state file is deleted and no remote backend is configured, first check if terraform.tfstate.backup exists and restore it. If not, I’d use terraform import to re-map existing cloud resources into the new state. For large environments, I’d automate imports using tools like Terraformer. To prevent this issue, I’d configure a remote backend (e.g., S3 + DynamoDB) so state is never lost.
+If the local state file is deleted and no remote backend is configured, first check if terraform.tfstate.backup exists and restore it. 
+If not, I’d use terraform import to re-map existing cloud resources into the new state. 
+For large environments, I’d automate imports using tools like Terraformer. To prevent this issue, I’d configure a remote backend (e.g., S3 + DynamoDB) so state is never lost.
 
 
 -------------------------------------------------
@@ -1018,6 +1022,3 @@ Q. Terraform state file contains passwords. What will you do?
 
 
 -------------------------------------------------------
-
-
-

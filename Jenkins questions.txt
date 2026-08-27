@@ -103,7 +103,7 @@ Agents are responsible for:
 
 🧩 Types of Agents:
 Type	Description
-Any	Runs the pipeline or stage on any available agent.
+Any	    Runs the pipeline or stage on any available agent.
 Label	Targets a node with a specific label (e.g., linux, docker).
 None	Disables automatic agent assignment, allowing stage-level agents.
 Docker	Runs the stage inside a specified Docker container.
@@ -204,9 +204,9 @@ A shared library repo has a specific structure:
 │   └── myTemplate.txt        # External files
 └── README.md
 📁 Folder Breakdown
-Folder	Purpose
-vars/	Contains global variables and functions (exposed as sayHello())
-src/	Holds Groovy classes or packages (like normal Java/Groovy projects)
+Folder	    Purpose
+vars/	    Contains global variables and functions (exposed as sayHello())
+src/	    Holds Groovy classes or packages (like normal Java/Groovy projects)
 resources/	Contains non-code assets (e.g., config files, templates)
 
 🛠️ Step-by-Step: How to Use Shared Libraries in Jenkins
@@ -217,6 +217,7 @@ groovy
 def call(String name = 'User') {
     echo "Hello, ${name}!"
 }
+
 ✅ 2. Configure Shared Library in Jenkins
 Go to: Manage Jenkins → Configure System
 Find: Global Pipeline Libraries
@@ -280,10 +281,10 @@ pipeline {
 Yes — parallel execution in Jenkins pipelines is a powerful feature that I’ve used (and many engineers use) to optimize build times and speed up CI/CD workflows. Here's how and why it's done.
 
 ✅ Why Use Parallel Execution in Jenkins?
-Situation						Benefit
-Run multiple tests (e.g., unit, integration, UI)	Saves time by running them concurrently
-Deploy to multiple environments				Speeds up delivery
-Run tasks on different OS/agents			Ensures cross-platform compatibility
+Situation						    Benefit
+Run multiple tests (e.g., unit)  	Saves time by running them concurrently
+Deploy to multiple environments		Speeds up delivery
+Run tasks on different OS/agents	Ensures cross-platform compatibility
 Perform post-build activities (e.g., archiving, scanning, reporting) together	Efficient utilization of build agents
 
 ✅ How to Handle Parallel Execution in Jenkins Declarative Pipeline

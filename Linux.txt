@@ -171,7 +171,21 @@ Both share the same inode number, and even if the original filename is deleted, 
 
 
 
+Vi Shortuts
 
+Action	                        Command
+Select line(s)	                Shift + V
+Select characters	            v
+Select block/column	            Ctrl + v
+Select entire file	            ggVG
+Copy selected	                y
+Delete selected	                d
+Paste	                        p
+Undo changes                    u
+Shift to right                  > , >>
+Shift to left                   <
+to indent speicic line          5>, 3<
+line number                     set number
 
 
 

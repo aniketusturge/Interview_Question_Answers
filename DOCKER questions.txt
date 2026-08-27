@@ -106,11 +106,11 @@ docker run myimage -g "daemon on;"
 ➡️ Executes: nginx -g "daemon on;"
 
 🔹 Comparison Summary:
-Feature			ENTRYPOINT			CMD
-Purpose			Defines the executable		Provides default args
-Can be overridden	Not easily overridden		Easily overridden at runtime
-Typical use case	CLI tools, fixed processes	Default behavior or parameters
-Combined usage		Yes, ENTRYPOINT + CMD		CMD can act alone
+Feature			      ENTRYPOINT			         CMD
+Purpose			      Defines the executable		Provides default args
+Can be overridden	   Not easily overridden		Easily overridden at runtime
+Typical use case	   CLI tools, fixed processes	Default behavior or parameters
+Combined usage		   Yes, ENTRYPOINT + CMD		CMD can act alone
 
 ✅ Best Practice:
 Use ENTRYPOINT for defining the fixed command, and CMD for default arguments you want to optionally override.

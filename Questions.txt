@@ -317,3 +317,12 @@ Statement about CloudFormation support for Chef configuration management.
 16. CloudFormation template question:
 
 From which section are values like InstanceType and KeyName referenced using Ref?
+
+
+how will you rollback pipeline
+what is rancher. diff between k8s nd rancher
+what are challenge you faced during deploymnet of 
+in elk what are main observability , what will u observe 
+how application scrapes log to elk
+what is filebit, how many types of beats are there in elk.
+kill -14 , what is PR 

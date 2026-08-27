@@ -1,4 +1,4 @@
-
+ 
 
 
 kubectl explain pods/namespace/deployment/any_resource_name
@@ -13,12 +13,16 @@ kubectl replace --force -f nginx.yaml
 kubectl get pods
 kubectl get pods --watch
 kubectl get pods -o wide
+kubectl top pod pod_name
+kubectl top pod --sort-by=cpu
+kubectl top pod --sort-by=memory
+kubectl top pod pod_name --containers 
+kubectl top pod pod_name --containers --sort-by=memory/cpu 
 kubectl get pods --selector app=app1
 kubectl get pods --selector env=dev --no-headers | wc -l   get count of pods having label dev
 kubectl describe pod pod_name
 kubectl edit pod pod_name
 kubectl delete pod pod_name
-
 kubectl get all
 
 REPLICASET
@@ -88,8 +92,32 @@ kubectl get pods --selector env=dev --no-headers | wc -l   get count of pods hav
 
 
 
-kubectl top pod pod-name   - check pods cpu and memory utilisation
+kubectl top node node-name 
 
+
+
+Helm commands
+First, verify that Helm is installed and check the version:
+helm version
+
+Add the official nginx Helm repository:
+helm repo add repo-name-any repo-url
+helm repo add nginx-stable https://helm.nginx.com/stable
+
+Update the repository to fetch the latest chart information:
+helm repo update
+
+Search for available nginx charts:
+helm search repo nginx
+
+Get detailed information about the nginx-ingress chart:
+helm show chart nginx-stable/nginx-ingress
+
+View the default values for this chart:
+helm show values nginx-stable/nginx-ingress
+
+List the configured repositories:
+helm repo list
 
 
 
