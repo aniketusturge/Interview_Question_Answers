@@ -119,5 +119,88 @@ helm show values nginx-stable/nginx-ingress
 List the configured repositories:
 helm repo list
 
+Create a namespace for the ingress controller:
+
+kubectl create namespace nginx-ingress
+
+Install the nginx-ingress chart with specific configurations:
+helm install my-nginx-ingress nginx-stable/nginx-ingress \
+  --namespace nginx-ingress \
+  --set controller.replicaCount=2 \
+  --set controller.service.type=NodePort \
+  --set controller.service.httpPort.nodePort=30080 \
+  --set controller.service.httpsPort.nodePort=30443
+
+Check the Helm release status:
+helm status my-nginx-ingress -n nginx-ingress
+
+List all Helm releases:
+helm list -A
+
+Verify the pods are running:
+kubectl get pods -n nginx-ingress
+
+Check the service configuration:
+kubectl get svc -n nginx-ingress
+
+Get the release history:
+helm history my-nginx-ingress -n nginx-ingress
+
+View the generated Kubernetes manifests:
+helm get manifest my-nginx-ingress -n nginx-ingress
+
+Upgrade the release using the custom values file:
+helm upgrade my-nginx-ingress nginx-stable/nginx-ingress \
+  --namespace nginx-ingress \
+  --values /root/nginx-values.yaml
+
+Perform another upgrade to add a specific annotation:
+helm upgrade my-nginx-ingress nginx-stable/nginx-ingress \
+  --namespace nginx-ingress \
+  --values /root/nginx-values.yaml \
+  --set controller.service.annotations."service\.kubernetes\.io/load-balancer-source-ranges"="10.0.0.0/8"
+
+Check the release status and history:
+helm status my-nginx-ingress -n nginx-ingress
+helm history my-nginx-ingress -n nginx-ingress
+
+Verify the pod count has changed:
+kubectl get pods -n nginx-ingress
+
+Check the resource configuration:
+kubectl describe deployment -n nginx-ingress
+
+First, let's create a problematic configuration by upgrading with invalid settings:
+helm upgrade my-nginx-ingress nginx-stable/nginx-ingress \
+  --namespace nginx-ingress \
+  --set controller.image.tag="invalid-tag" \
+  --set controller.replicaCount=5
+
+Check the pod status - you should see some issues:
+kubectl get pods -n nginx-ingress -w
+
+View the release history to see all revisions:
+helm history my-nginx-ingress -n nginx-ingress
+
+Rollback to the previous working revision (revision 3):
+helm rollback my-nginx-ingress 3 -n nginx-ingress
+
+Check that the rollback was successful:
+helm status my-nginx-ingress -n nginx-ingress
+helm history my-nginx-ingress -n nginx-ingress
+
+Verify pods are healthy again:
+kubectl get pods -n nginx-ingress
+
+Get values for the current release:
+helm get values my-nginx-ingress -n nginx-ingress
+
+Get all information about the release:
+helm get all my-nginx-ingress -n nginx-ingress
+
+
+
+
+
 
 
